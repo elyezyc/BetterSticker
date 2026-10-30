@@ -299,6 +299,60 @@ object StickerSender {
             } catch (_: Throwable) {
             }
         }
+        // 最后：从当前 Activity/View 对象图按接口结构找，不依赖固定类名。
+        return findAioInGraph(activity)
+    }
+
+    private fun findAioInGraph(activity: Activity): Any? {
+        val iface = com.bettersticker.core.HookRuntime.findClass(
+            "com.tencent.aio.api.runtime.a") ?: return null
+        val visited = java.util.Collections.newSetFromMap(
+            java.util.IdentityHashMap<Any, Boolean>())
+        val queue = ArrayDeque<Any>()
+        queue.add(activity)
+        try {
+            queue.add(activity.window.decorView)
+        } catch (_: Throwable) {
+        }
+        var steps = 0
+        while (queue.isNotEmpty() && steps++ < 6000) {
+            val obj = queue.removeFirst()
+            if (obj == null || !visited.add(obj)) continue
+            if (iface.isInstance(obj)) {
+                LogX.i("对象图找到 AIOContext: ${obj.javaClass.name}")
+                return obj
+            }
+            var c: Class<*>? = obj.javaClass
+            var depth = 0
+            while (c != null && depth++ < 10) {
+                for (f in c.declaredFields) {
+                    if (java.lang.reflect.Modifier.isStatic(f.modifiers)) continue
+                    val tn = f.type.name
+                    if (f.type.isPrimitive || tn == "java.lang.String") continue
+                    try {
+                        f.isAccessible = true
+                        var v = f.get(obj) ?: continue
+                        if (v is java.lang.ref.Reference<*>) v = v.get() ?: continue
+                        if (iface.isInstance(v)) {
+                            LogX.i("对象图字段 ${c.name}.${f.name} 找到 AIOContext")
+                            return v
+                        }
+                        if (v is List<*> || v is Array<*> || v is Map<*, *>) {
+                            queue.add(v)
+                            continue
+                        }
+                        val n = v.javaClass.name
+                        if (!n.startsWith("android.content.res")
+                                && !n.startsWith("android.graphics")
+                                && !n.startsWith("android.util")) {
+                            queue.add(v)
+                        }
+                    } catch (_: Throwable) {
+                    }
+                }
+                c = c.superclass
+            }
+        }
         return null
     }
 
