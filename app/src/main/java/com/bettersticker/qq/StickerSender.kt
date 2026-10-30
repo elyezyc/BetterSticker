@@ -229,6 +229,7 @@ object StickerSender {
     }
 
     private fun findAioContext(activity: Activity): Any? {
+        QqSessionStore.currentAio()?.let { return it }
         for (getter in arrayOf("getSupportFragmentManager", "getFragmentManager")) {
             try {
                 val fm = activity.javaClass.getMethod(getter).invoke(activity) ?: continue

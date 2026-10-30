@@ -11,6 +11,8 @@ object QqSessionStore {
     private val installed = AtomicBoolean()
     @Volatile
     private var ref: WeakReference<Any>? = null
+    @Volatile
+    private var aioRef: WeakReference<Any>? = null
 
     @JvmStatic
     fun install() {
@@ -35,4 +37,33 @@ object QqSessionStore {
 
     @JvmStatic
     fun current(): Any? = ref?.get()
+
+    @JvmStatic
+    fun currentAio(): Any? = aioRef?.get()
+
+    /** ChatFragment.onResume 时直接读 currentContext（WeakReference<AIOContext>）。 */
+    @JvmStatic
+    fun captureFromFragment(fragment: Any?) {
+        if (fragment == null) return
+        try {
+            var c: Class<*>? = fragment.javaClass
+            while (c != null) {
+                try {
+                    val f = c.getDeclaredField("currentContext")
+                    f.isAccessible = true
+                    val v = f.get(fragment)
+                    val aio = if (v is java.lang.ref.WeakReference<*>) v.get() else v
+                    if (aio != null) {
+                        aioRef = WeakReference(aio)
+                        LogX.i("已捕获 ChatFragment AIOContext: ${aio.javaClass.name}")
+                        return
+                    }
+                } catch (_: Throwable) {
+                }
+                c = c.superclass
+            }
+        } catch (t: Throwable) {
+            LogX.w("读取 ChatFragment.currentContext 失败: $t")
+        }
+    }
 }

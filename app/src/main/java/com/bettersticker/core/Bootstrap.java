@@ -151,6 +151,7 @@ public final class Bootstrap {
                 }
                 if (fr != null) {
                     XHooker.hookAfter(fr, param -> {
+                        QqSessionStore.captureFromFragment(param.obj);
                         Activity a = ActivityTracker.current();
                         if (a != null) TriggerRegistry.scanActivity(a);
                     });
