@@ -37,6 +37,7 @@ public final class SessionProbe {
         }
         graph(activity);
         appDump();
+        dumpEmoticonClass(activity);
         return "done";
     }
 
@@ -147,6 +148,40 @@ public final class SessionProbe {
             }
         } catch (Throwable t) {
             LogX.e("SessionProbe appDump fail", t);
+        }
+    }
+
+    private static void dumpEmoticonClass(Activity activity) {
+        try {
+            Object app = com.bettersticker.qq.QqRuntimeFinder.app(activity);
+            if (app == null) { LogX.i("SessionProbe Emoticon: app null"); return; }
+            ClassLoader l = app.getClass().getClassLoader();
+            Class<?> emo = Class.forName("com.tencent.mobileqq.data.Emoticon", false, l);
+            LogX.i("SessionProbe Emoticon class=" + emo.getName());
+            for (Field f : emo.getDeclaredFields()) {
+                LogX.i("SessionProbe Emoticon field: " + f.getName() + " " + f.getType().getSimpleName());
+            }
+            Class<?> sup = emo.getSuperclass();
+            LogX.i("SessionProbe Emoticon superclass=" + (sup == null ? "null" : sup.getName()));
+            while (sup != null && sup != Object.class) {
+                for (Field f : sup.getDeclaredFields()) {
+                    LogX.i("SessionProbe Emoticon super field: " + sup.getSimpleName() + "." + f.getName() + " " + f.getType().getSimpleName());
+                }
+                sup = sup.getSuperclass();
+            }
+            for (Method m : emo.getMethods()) {
+                if (m.getName().equals("getPath") || m.getName().equals("getImageType")
+                        || m.getName().equals("setPath") || m.getName().equals("getBigImagePath")) {
+                    LogX.i("SessionProbe Emoticon method: " + m.getName() + "(" + m.getParameterCount() + ") -> " + m.getReturnType().getSimpleName());
+                }
+            }
+            Class<?> pic = Class.forName("com.tencent.mobileqq.emoticonview.PicEmoticonInfo", false, l);
+            LogX.i("SessionProbe PicEmoticonInfo class=" + pic.getName());
+            for (Field f : pic.getDeclaredFields()) {
+                LogX.i("SessionProbe PicEmoticonInfo field: " + f.getName() + " " + f.getType().getSimpleName());
+            }
+        } catch (Throwable t) {
+            LogX.e("SessionProbe dumpEmoticonClass fail", t);
         }
     }
 
