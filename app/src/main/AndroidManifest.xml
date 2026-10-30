@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      刻意不声明任何权限：
+      - 不声明 INTERNET（验收项）
+      - 不声明 READ/WRITE_EXTERNAL_STORAGE（导出走 MediaStore）
+      - 不声明 MANAGE_EXTERNAL_STORAGE
+      所有文件访问都发生在 QQ 进程自己的权限范围内。
+    -->
+
+    <application
+        android:allowBackup="false"
+        android:icon="@drawable/ic_bettersticker"
+        android:description="@string/module_desc"
+        android:label="@string/app_name"
+        android:supportsRtl="true">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.BetterSticker.Material3">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <meta-data
+            android:name="xposedmodule"
+            android:value="true" />
+        <meta-data
+            android:name="xposeddescription"
+            android:value="@string/module_desc" />
+        <meta-data
+            android:name="xposedminversion"
+            android:value="93" />
+        <meta-data
+            android:name="xposedscope"
+            android:resource="@array/xposedscope" />
+    </application>
+
+</manifest>

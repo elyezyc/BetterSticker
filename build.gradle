@@ -1,0 +1,5 @@
+// 顶层构建文件：只声明 AGP 版本，不在这里应用插件。
+plugins {
+    id 'com.android.application' version '8.5.2' apply false
+    id 'org.jetbrains.kotlin.android' version '1.9.20' apply false
+}

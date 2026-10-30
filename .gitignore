@@ -1,0 +1,26 @@
+.toolchain/
+.gradle-home/
+.android-home/
+.recon/
+.gradle/
+build/
+app/build/
+local.properties
+*.apk
+*.iml
+.idea/
+.DS_Store
+
+# signing material
+key/key.jks
+key/keystore.properties
+
+# reverse-engineering / large local files
+.recon*/
+.gh-config/
+QQ*.apk
+参考/
+原版数据格式说明.md
+docs/
+*.jks
+key/

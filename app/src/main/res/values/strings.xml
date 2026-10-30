@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">BetterSticker</string>
+    <string name="module_desc">QQ 表情/语音收藏与导出（LSPosed）。长按聊天界面的表情图标打开面板；长按消息中的表情/图片/语音可收藏。不联网。</string>
+</resources>

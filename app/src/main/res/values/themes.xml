@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.BetterSticker.Material3" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">#6EE7B7</item>
+        <item name="colorOnPrimary">#101014</item>
+        <item name="colorPrimaryContainer">#1F4D42</item>
+        <item name="colorOnPrimaryContainer">#B8F5E2</item>
+        <item name="colorSecondary">#CAC4D0</item>
+        <item name="colorOnSecondary">#1C1B1F</item>
+        <item name="colorSecondaryContainer">#4A4458</item>
+        <item name="colorOnSecondaryContainer">#E8DEF8</item>
+        <item name="colorSurface">#1C1B1F</item>
+        <item name="colorOnSurface">#E6E1E5</item>
+        <item name="colorSurfaceVariant">#49454F</item>
+        <item name="colorOnSurfaceVariant">#CAC4D0</item>
+        <item name="colorOutline">#938F99</item>
+        <item name="colorError">#F2B8B5</item>
+        <item name="android:colorBackground">#121114</item>
+        <item name="android:windowBackground">#121114</item>
+        <item name="android:statusBarColor">#121114</item>
+        <item name="android:navigationBarColor">#121114</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.BetterSticker.MaterialAlertDialog</item>
+    </style>
+
+    <style name="ThemeOverlay.BetterSticker.MaterialAlertDialog"
+        parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorSurface">#1C1B1F</item>
+        <item name="colorOnSurface">#E6E1E5</item>
+        <item name="colorPrimary">#6EE7B7</item>
+    </style>
+</resources>

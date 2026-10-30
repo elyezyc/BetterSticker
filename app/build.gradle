@@ -1,0 +1,91 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+// 正式签名：key/keystore.properties 与 key/key.jks。
+// 不把口令写进 build.gradle，方便替换/轮换。
+def keystoreProps = new Properties()
+def keystorePropsFile = rootProject.file('key/keystore.properties')
+if (keystorePropsFile.exists()) {
+    keystorePropsFile.withInputStream { keystoreProps.load(it) }
+}
+
+android {
+    namespace 'com.bettersticker'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.elyezyc.bettersticker'
+        minSdk 29
+        targetSdk 34
+        versionCode 100
+        versionName '1.0.0'
+    }
+
+    signingConfigs {
+        release {
+            if (keystorePropsFile.exists()) {
+                storeFile rootProject.file(keystoreProps.getProperty('storeFile', 'key/key.jks'))
+                storePassword keystoreProps.getProperty('storePassword')
+                keyAlias keystoreProps.getProperty('keyAlias')
+                keyPassword keystoreProps.getProperty('keyPassword')
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            minifyEnabled false
+        }
+        release {
+            // v1 不混淆：Xposed 入口、Hook 目标、反射字段名必须稳定。
+            minifyEnabled false
+            shrinkResources false
+            // 使用 key/key.jks；缺少 keystore.properties 时才回退 debug，便于纯编译检查。
+            signingConfig keystorePropsFile.exists() ? signingConfigs.release : signingConfigs.debug
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
+    buildFeatures {
+        buildConfig false
+        aidl false
+    }
+
+    packaging {
+        resources {
+            excludes += ['META-INF/*.kotlin_module', 'META-INF/*.version']
+        }
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}
+
+dependencies {
+    // Xposed API 只在编译期可见，运行时由 LSPosed 提供，不打进 APK。
+    compileOnly files('libs/api-stubs.jar')
+
+    // 预编译的 RecyclerView Adapter 包装器（源码在 stubs/wrapper/，运行时用 QQ 自带 AndroidX）。
+    implementation files('libs/qq-menu-item.jar')
+    compileOnly files('libs/menu-stubs.jar')
+
+
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.9.20'
+    implementation 'com.google.android.material:material:1.12.0'
+
+    // 纯 Java 单元测试：WAV 头、图片签名识别。
+    testImplementation 'junit:junit:4.13.2'
+}

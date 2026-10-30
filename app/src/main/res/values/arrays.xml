@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 第一版只注入 QQ 主进程；其他应用/进程不在作用域内。 -->
+    <string-array name="xposedscope">
+        <item>com.tencent.mobileqq</item>
+    </string-array>
+</resources>

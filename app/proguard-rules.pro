@@ -1,0 +1,4 @@
+-keep class com.bettersticker.loader.** { *; }
+-keep class com.bettersticker.core.** { *; }
+-keep class com.bettersticker.qq.** { *; }
+-dontwarn de.robv.android.xposed.**
