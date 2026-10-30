@@ -325,7 +325,7 @@ object StickerSender {
 
     private fun findAioInGraph(activity: Activity): Any? {
         val iface = com.bettersticker.core.HookRuntime.findClass(
-            "com.tencent.aio.api.runtime.a") ?: return null
+            "com.tencent.aio.api.runtime.a")
         val visited = java.util.Collections.newSetFromMap(
             java.util.IdentityHashMap<Any, Boolean>())
         val queue = ArrayDeque<Any>()
@@ -338,7 +338,7 @@ object StickerSender {
         while (queue.isNotEmpty() && steps++ < 6000) {
             val obj = queue.removeFirst()
             if (obj == null || !visited.add(obj)) continue
-            if (iface.isInstance(obj) || looksLikeAio(obj)) {
+            if (iface?.isInstance(obj) == true || looksLikeAio(obj)) {
                 LogX.i("对象图找到 AIOContext: ${obj.javaClass.name}")
                 return obj
             }
@@ -353,7 +353,7 @@ object StickerSender {
                         f.isAccessible = true
                         var v = f.get(obj) ?: continue
                         if (v is java.lang.ref.Reference<*>) v = v.get() ?: continue
-                        if (iface.isInstance(v) || looksLikeAio(v)) {
+                        if (iface?.isInstance(v) == true || looksLikeAio(v)) {
                             LogX.i("对象图字段 ${c.name}.${f.name} 找到 AIOContext")
                             return v
                         }

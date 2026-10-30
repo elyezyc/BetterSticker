@@ -1,0 +1,53 @@
+name: Build CI
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: set up JDK 11
+        uses: actions/setup-java@v2
+        with:
+          java-version: '11'
+          distribution: 'adopt'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      - name: Build with Gradle
+        run: |
+          echo ${{ secrets.SIGN_KEY }} | base64 -d > key.jks
+          ./gradlew :QTool:assembleRelease
+        env:
+          KEYSTORE_PATH: "../key.jks"
+          KEYSTORE_PASSWORD: ${{ secrets.SIGN_PASS }}
+          KEY_ALIAS: ${{ secrets.SIGN_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ALIA_PASS }}
+          CommitNumber: ${{ github.run_number }}
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v2
+        if: ${{ !github.event.pull_request }}
+        with:
+          path: 'QTool/build/outputs/apk/release/QTool-release.apk'
+          name: QTool-CI-${{ github.run_number }}
+      - name: Write Commit Message To File
+        run: |
+          cat << ENDOFCOMMIT > ./QTool/build/outputs/apk/release/Commit信息.txt
+          ${{ github.event.head_commit.message }}
+          ENDOFCOMMIT
+      - name: Remote SSH Pusblish
+        uses: nerd4ever/ssh-action@0.1.0
+        with:
+          from: ./QTool/build/outputs/apk/release/
+          to:  ${{ secrets.DEPLOY_DEST }}QTool-CI-${{ github.run_number }}/
+          sync: local
+          host: ${{ secrets.SERVER_IP }}
+          user: ${{ secrets.SERVER_USERNAME }}
+          port: 22
+          pass: ${{ secrets.SERVER_PASSWORD }}

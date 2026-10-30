@@ -293,7 +293,8 @@ public final class Bootstrap {
         } catch (Throwable t) {
             LogX.e("DebugReceiver.register 失败", t);
         }
-        LogX.i("模块初始化完成；收藏目录=" + Env.moduleDataDir().getAbsolutePath());
+        LogX.i("模块初始化完成；收藏目录=" + Env.moduleDataDir().getAbsolutePath()
+                + " build=2026-10-30-sessioninfo");
     }
 
     /** 供调试接收器判断是否已完成初始化。 */

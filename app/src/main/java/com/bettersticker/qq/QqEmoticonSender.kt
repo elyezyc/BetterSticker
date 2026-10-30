@@ -19,7 +19,10 @@ object QqEmoticonSender {
     fun send(activity: Activity, file: File): Boolean {
         return try {
             val facade = HookRuntime.findClass(
-                "com.tencent.mobileqq.activity.ChatActivityFacade") ?: return false
+                "com.tencent.mobileqq.activity.ChatActivityFacade") ?: run {
+                LogX.w("sendEmosmMsg: ChatActivityFacade 类不存在")
+                return false
+            }
             val method = facade.declaredMethods.firstOrNull {
                 Modifier.isStatic(it.modifiers) && it.parameterCount == 5
                         && it.parameterTypes[0].name.contains("QQAppInterface")
@@ -43,7 +46,10 @@ object QqEmoticonSender {
                 return false
             }
             val emoClass = HookRuntime.findClass(
-                "com.tencent.mobileqq.data.Emoticon") ?: return false
+                "com.tencent.mobileqq.data.Emoticon") ?: run {
+                LogX.w("sendEmosmMsg: Emoticon 类不存在")
+                return false
+            }
             val emo = emoClass.getDeclaredConstructor().newInstance()
             setField(emo, "path", file.absolutePath)
             setField(emo, "epId", "")
