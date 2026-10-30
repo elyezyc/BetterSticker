@@ -47,8 +47,7 @@ object SendTrace {
                 "com.tencent.mobileqq.activity.ChatActivityFacade")
             if (facade != null) {
                 for (m in facade.declaredMethods) {
-                    if (!m.name.startsWith("C") && !m.name.startsWith("send")) continue
-                    if (m.parameterCount < 2) continue
+                    if (m.parameterCount > 6) continue
                     XHooker.hookBefore(m) { p ->
                         val sb = StringBuilder("SendTrace ChatActivityFacade." + m.name + "(")
                         p.args?.forEach { a ->
@@ -66,6 +65,22 @@ object SendTrace {
                     }
                 }
                 LogX.i("SendTrace 已 Hook ChatActivityFacade")
+            }
+            val mp = HookRuntime.findClass("com.tencent.imcore.message.MsgProxy")
+            if (mp != null) {
+                for (m in mp.declaredMethods) {
+                    if (!m.name.startsWith("send") && !m.name.startsWith("a")) continue
+                    if (m.parameterCount > 6) continue
+                    XHooker.hookBefore(m) { p ->
+                        val sb = StringBuilder("SendTrace MsgProxy." + m.name + "(")
+                        p.args?.forEach { a ->
+                            sb.append(if (a == null) "null" else a.javaClass.simpleName).append(",")
+                        }
+                        sb.append(")")
+                        LogX.i(sb.toString())
+                    }
+                }
+                LogX.i("SendTrace 已 Hook MsgProxy")
             }
         } catch (t: Throwable) {
             LogX.e("SendTrace ChatActivityFacade fail", t)

@@ -274,11 +274,7 @@ public final class Bootstrap {
             } catch (Throwable ignored) {
             }
         }
-        try {
-            SendTrace.install();
-        } catch (Throwable t) {
-            LogX.e("SendTrace.install 失败", t);
-        }
+        // SendTrace 仅用于抓 QQ 原版发送调用链；正式版关闭，避免 hook 过多导致进程启动失败。
         try {
             QqEmoticonCallbackStore.install();
         } catch (Throwable t) {
