@@ -608,10 +608,10 @@ public final class PanelView extends LinearLayout {
 
     private void sendSticker(FavoriteItem item) {
         File f = FavoriteStore.get().fileOf(item);
-        boolean ok = com.bettersticker.qq.StickerSender.send(activity, f);
-        if (ok) {
-            callback.onClose();
-        }
+        // 先关面板，避免 Dialog 抢焦点导致粘贴/发送按钮点不到。
+        callback.onClose();
+        activity.getWindow().getDecorView().postDelayed(
+                () -> com.bettersticker.qq.StickerSender.send(activity, f), 120);
     }
 
     private void preview(FavoriteItem item) {
