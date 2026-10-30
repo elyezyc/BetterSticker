@@ -25,8 +25,9 @@ object QqPhotoSender {
                 "com.tencent.mobileqq.activity.photo.SendPhotoActivity"
             )
             intent.putStringArrayListExtra("PhotoConst.PHOTO_PATHS", paths)
-            intent.putExtra("PhotoConst.PHOTO_SELECT_ACTIVITY_PACKAGE_NAME", "com.tencent.mobileqq")
-            intent.putExtra("PhotoConst.PHOTO_SELECT_ACTIVITY_CLASS_NAME", "com.tencent.mobileqq.activity.SplashActivity")
+            intent.putExtra("PhotoConst.INIT_ACTIVITY_PACKAGE_NAME", "com.tencent.mobileqq")
+            intent.putExtra("PhotoConst.INIT_ACTIVITY_CLASS_NAME", "com.tencent.mobileqq.activity.SplashActivity")
+            intent.putExtra("PhotoConst.SEND_PHOTO_ACTIVITY_FROM", "PhotoConst.SEND_PHOTO_ACTIVITY_FROM")
             intent.putExtra("PhotoConst.SINGLE_PHOTO_PATH", file.absolutePath)
             intent.putExtra("PhotoConst.PHOTO_COUNT", 1)
             if (session != null) {
