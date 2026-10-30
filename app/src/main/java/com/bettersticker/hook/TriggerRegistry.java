@@ -378,12 +378,15 @@ public final class TriggerRegistry {
                     }
                     String all = (desc + " " + text + " " + idName)
                             .toLowerCase(java.util.Locale.US);
-                    if (!all.contains("发送") && !all.contains("send")
+                    boolean isVoice = all.contains("语音") || all.contains("voice")
+                            || all.contains("mic");
+                    boolean isSticker = all.contains("表情") || all.contains("emoji")
+                            || all.contains("emoticon");
+                    if ((isVoice || isSticker)
+                            && !all.contains("发送") && !all.contains("send")
                             && !idName.contains("send") && !idName.contains("plus")
                             && !idName.contains("add") && tabOf(v) == null) {
-                        String tab = all.contains("语音") || all.contains("voice")
-                                || all.contains("mic") ? "voice" : "sticker";
-                        markExternal(v, tab);
+                        markExternal(v, isVoice ? "voice" : "sticker");
                         found = true;
                     }
                 }
@@ -536,16 +539,8 @@ public final class TriggerRegistry {
         } else if (all.contains("表情") || all.contains("emoji") || all.contains("emoticon")) {
             tab = "sticker";
         } else {
-            // 布局常识：语音图标在输入框左侧，表情/更多在右侧。
-            try {
-                int[] eLoc = new int[2];
-                int[] cLoc = new int[2];
-                edit.getLocationOnScreen(eLoc);
-                child.getLocationOnScreen(cLoc);
-                tab = cLoc[0] < eLoc[0] ? "voice" : "sticker";
-            } catch (Throwable t) {
-                tab = "sticker";
-            }
+            // 只标明确的“表情/语音”图标；相册、拍照、泡泡、更多功能不参与。
+            return false;
         }
         LogX.i("输入区图标命中: " + child.getClass().getSimpleName()
                 + " id=" + idName + " desc=" + desc + " -> " + tab);
@@ -604,15 +599,8 @@ public final class TriggerRegistry {
         } else if (all.contains("表情") || all.contains("emoji") || all.contains("emoticon")) {
             tab = "sticker";
         } else {
-            try {
-                int[] eLoc = new int[2];
-                int[] cLoc = new int[2];
-                edit.getLocationOnScreen(eLoc);
-                v.getLocationOnScreen(cLoc);
-                tab = cLoc[0] < eLoc[0] ? "voice" : "sticker";
-            } catch (Throwable t) {
-                tab = "sticker";
-            }
+            // 只标明确的“表情/语音”图标，避免把相册、拍照、泡泡、更多功能也标成表情。
+            return null;
         }
         LogX.i("长按即时兜底命中: " + v.getClass().getSimpleName()
                 + " id=" + idName + " desc=" + desc + " -> " + tab);

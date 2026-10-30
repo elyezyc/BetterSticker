@@ -120,16 +120,18 @@ object StickerSender {
             val m = sender.methods.firstOrNull {
                 it.name == "send" && it.parameterCount == 5
             } ?: return false
+            var ok = false
             activity.runOnUiThread {
                 try {
                     m.invoke(null, info, runtime, activity, edit, session)
+                    ok = true
                     Toast.makeText(activity, "已发送表情", Toast.LENGTH_SHORT).show()
                 } catch (t: Throwable) {
                     LogX.e("PicEmoticonInfo 发送失败", t)
                     Toast.makeText(activity, "发送失败: ${t.message}", Toast.LENGTH_LONG).show()
                 }
             }
-            true
+            ok
         } catch (t: Throwable) {
             LogX.w("PicEmoticonInfo 发送入口不可用: $t")
             false
@@ -167,7 +169,8 @@ object StickerSender {
         while (queue.isNotEmpty() && steps++ < 3000) {
             val obj = queue.removeFirst()
             if (obj == null || !visited.add(obj)) continue
-            if (obj.javaClass.name == target) return obj
+            if (obj.javaClass.name == target
+                || obj.javaClass.superclass?.name == target) return obj
             var c: Class<*>? = obj.javaClass
             var depth = 0
             while (c != null && depth++ < 4) {
@@ -183,7 +186,8 @@ object StickerSender {
                         if (v is java.lang.ref.Reference<*>) {
                             v = v.get() ?: continue
                         }
-                        if (v.javaClass.name == target) return v
+                        if (v.javaClass.name == target
+                            || v.javaClass.superclass?.name == target) return v
                         val n = v.javaClass.name
                         if (n.startsWith("com.tencent.") || v is List<*> || v is Array<*>) {
                             queue.add(v)
