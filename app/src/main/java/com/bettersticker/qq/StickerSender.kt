@@ -303,6 +303,18 @@ object StickerSender {
         return findAioInGraph(activity)
     }
 
+    /** 结构识别：有 g() 且返回 AIOParam 的对象视为 AIOContext。 */
+    private fun looksLikeAio(obj: Any): Boolean {
+        return try {
+            obj.javaClass.methods.any {
+                it.name == "g" && it.parameterCount == 0
+                        && it.returnType.name.contains("AIOParam")
+            }
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
     private fun findAioInGraph(activity: Activity): Any? {
         val iface = com.bettersticker.core.HookRuntime.findClass(
             "com.tencent.aio.api.runtime.a") ?: return null
@@ -318,7 +330,7 @@ object StickerSender {
         while (queue.isNotEmpty() && steps++ < 6000) {
             val obj = queue.removeFirst()
             if (obj == null || !visited.add(obj)) continue
-            if (iface.isInstance(obj)) {
+            if (iface.isInstance(obj) || looksLikeAio(obj)) {
                 LogX.i("对象图找到 AIOContext: ${obj.javaClass.name}")
                 return obj
             }
@@ -333,7 +345,7 @@ object StickerSender {
                         f.isAccessible = true
                         var v = f.get(obj) ?: continue
                         if (v is java.lang.ref.Reference<*>) v = v.get() ?: continue
-                        if (iface.isInstance(v)) {
+                        if (iface.isInstance(v) || looksLikeAio(v)) {
                             LogX.i("对象图字段 ${c.name}.${f.name} 找到 AIOContext")
                             return v
                         }
