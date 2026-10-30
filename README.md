@@ -24,7 +24,7 @@
 
 ### 发送 / 预览 / 收藏
 
-- **单击表情**：直接调用 QQ 原版 AIO 表情发送；AIOContext 从当前 `ChatFragment.currentContext` 读取，不做全局捕获；失败才回退到“粘贴图片 + QQ 发送按钮”；
+- **单击表情**：直接调用 QQ 原版 `PicEmoticonInfoSender` 发送本地表情；AIO session 从当前 Activity/Fragment 对象图读取，不做全局捕获；失败才回退到“粘贴图片 + QQ 发送按钮”；
 - **长按表情**：
   - 预览；
   - 收藏到“收藏”分组；
@@ -175,8 +175,8 @@ adb install app/build/outputs/apk/release/app-release.apk
 1. **只针对 QQ 9.3.75.42350 做过反编译适配**  
    菜单、输入框、AIO 上下文都依赖混淆类名和方法名。QQ 一升级，可能需要重新核对。
 
-2. **单击发送依赖 QQ 内部 AIO 表情接口**  
-   优先读取当前 `ChatFragment.currentContext` 并调用 `AIOEmoApiImpl.sendRandomPicEmotionMsgFromAIO`；个别 QQ 小版本/聊天类型上如果找不到上下文，会回退到粘贴 + 发送按钮。
+2. **单击发送依赖 QQ 内部表情发送接口**  
+   优先读取当前 AIO session 并调用 `PicEmoticonInfoSender.send`；个别 QQ 小版本/聊天类型上如果找不到 session，会回退到粘贴 + 发送按钮。
 
 3. **FunBox 分组规则是“按目录猜”**  
    现在按 `.fun/Sticker/Storage/<分组>` 取分组，不解析 FunBox 的内部数据库/索引。如果实际导出把分组信息放在 JSON 里，分组可能不准。

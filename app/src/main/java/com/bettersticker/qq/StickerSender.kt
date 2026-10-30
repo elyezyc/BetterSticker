@@ -36,8 +36,8 @@ object StickerSender {
             Toast.makeText(activity, "表情文件不存在", Toast.LENGTH_SHORT).show()
             return false
         }
-        val aio = findAioContext(activity)
-        if (aio != null && sendViaAio(activity, file, aio)) {
+        // 优先走 QQ 原版 PicEmoticonInfoSender；需要当前 AIO session。
+        if (sendViaPicEmoticon(activity, file)) {
             return true
         }
         val input = findChatInput(activity)
@@ -93,61 +93,103 @@ object StickerSender {
         }, if (attempt == 0) 600L else 500L)
     }
 
-    /** 直接读当前 ChatFragment.currentContext，不依赖全局捕获。 */
-    private fun findAioContext(activity: Activity): Any? {
-        for (getter in arrayOf("getSupportFragmentManager", "getFragmentManager")) {
-            try {
-                val fm = activity.javaClass.getMethod(getter).invoke(activity) ?: continue
-                val fragments = fm.javaClass.getMethod("getFragments").invoke(fm) as? List<*>
-                    ?: continue
-                for (f in fragments) {
-                    if (f == null || !f.javaClass.name.contains("ChatFragment")) continue
-                    var c: Class<*>? = f.javaClass
-                    while (c != null) {
-                        try {
-                            val field = c.getDeclaredField("currentContext")
-                            field.isAccessible = true
-                            val value = field.get(f)
-                            if (value is java.lang.ref.WeakReference<*>) {
-                                value.get()?.let { return it }
-                            } else if (value != null) {
-                                return value
-                            }
-                        } catch (_: Throwable) {
-                        }
-                        c = c.superclass
-                    }
-                }
-            } catch (_: Throwable) {
-            }
-        }
-        return null
-    }
-
-    /** 调用 QQ 原版 AIO 表情发送。 */
-    private fun sendViaAio(activity: Activity, file: File, aio: Any): Boolean {
+    /** 用 QQ 原版 PicEmoticonInfoSender 发送本地 PicEmoticonInfo。 */
+    private fun sendViaPicEmoticon(activity: Activity, file: File): Boolean {
         return try {
-            val apiClass = com.bettersticker.core.HookRuntime.findClass(
-                "com.tencent.qqnt.aio.api.impl.AIOEmoApiImpl") ?: return false
-            val aioClass = com.bettersticker.core.HookRuntime.findClass(
-                "com.tencent.aio.api.runtime.a") ?: return false
-            val api = apiClass.getDeclaredConstructor().newInstance()
-            val method = apiClass.getMethod(
-                "sendRandomPicEmotionMsgFromAIO", String::class.java, aioClass)
+            val session = findAioSession(activity) ?: return false
+            val appClass = com.bettersticker.core.HookRuntime.findClass(
+                "com.tencent.common.app.BaseApplicationImpl") ?: return false
+            val app = appClass.getMethod("getApplication").invoke(null) ?: return false
+            val runtime = app.javaClass.getMethod("getRuntime").invoke(app) ?: return false
+            val infoClass = com.bettersticker.core.HookRuntime.findClass(
+                "com.tencent.mobileqq.emoticonview.PicEmoticonInfo") ?: return false
+            val emoClass = com.bettersticker.core.HookRuntime.findClass(
+                "com.tencent.mobileqq.data.Emoticon") ?: return false
+            val info = infoClass.getConstructor(String::class.java)
+                .newInstance("")
+            val emoticon = emoClass.getDeclaredConstructor().newInstance()
+            setField(emoClass, emoticon, "path", file.absolutePath)
+            setField(emoClass, emoticon, "epId", "")
+            setField(emoClass, emoticon, "eId", "")
+            setField(emoClass, emoticon, "jobType", 0)
+            infoClass.getField("emoticon").set(info, emoticon)
+            val sender = com.bettersticker.core.HookRuntime.findClass(
+                "com.tencent.mobileqq.emoticonview.sender.PicEmoticonInfoSender")
+                ?: return false
+            val edit = findChatInput(activity) ?: return false
+            val m = sender.methods.firstOrNull {
+                it.name == "send" && it.parameterCount == 5
+            } ?: return false
             activity.runOnUiThread {
                 try {
-                    method.invoke(api, file.absolutePath, aio)
+                    m.invoke(null, info, runtime, activity, edit, session)
                     Toast.makeText(activity, "已发送表情", Toast.LENGTH_SHORT).show()
                 } catch (t: Throwable) {
-                    LogX.e("QQ 原生发送失败", t)
+                    LogX.e("PicEmoticonInfo 发送失败", t)
                     Toast.makeText(activity, "发送失败: ${t.message}", Toast.LENGTH_LONG).show()
                 }
             }
             true
         } catch (t: Throwable) {
-            LogX.w("找不到 QQ 原生表情发送入口: $t")
+            LogX.w("PicEmoticonInfo 发送入口不可用: $t")
             false
         }
+    }
+
+    private fun setField(c: Class<*>, obj: Any, name: String, value: Any?) {
+        try {
+            val f = c.getField(name)
+            f.isAccessible = true
+            f.set(obj, value)
+        } catch (_: Throwable) {
+        }
+    }
+
+    /** 从当前 Activity 的对象图里找 com.tencent.mobileqq.activity.aio.n（AIO session）。 */
+    private fun findAioSession(activity: Activity): Any? {
+        val target = "com.tencent.mobileqq.activity.aio.n"
+        val visited = java.util.Collections.newSetFromMap(
+            java.util.IdentityHashMap<Any, Boolean>()
+        )
+        val queue = ArrayDeque<Any>()
+        queue.add(activity)
+        // 明确加入 FragmentManager 里的 ChatFragment。
+        for (getter in arrayOf("getSupportFragmentManager", "getFragmentManager")) {
+            try {
+                val fm = activity.javaClass.getMethod(getter).invoke(activity) ?: continue
+                val fs = fm.javaClass.getMethod("getFragments").invoke(fm) as? List<*> ?: continue
+                fs.filterNotNull().forEach { queue.add(it) }
+            } catch (_: Throwable) {
+            }
+        }
+        var steps = 0
+        while (queue.isNotEmpty() && steps++ < 3000) {
+            val obj = queue.removeFirst()
+            if (obj == null || !visited.add(obj)) continue
+            if (obj.javaClass.name == target) return obj
+            var c: Class<*>? = obj.javaClass
+            var depth = 0
+            while (c != null && depth++ < 4) {
+                for (f in c.declaredFields) {
+                    if (java.lang.reflect.Modifier.isStatic(f.modifiers)) continue
+                    val tn = f.type.name
+                    if (tn.startsWith("java.") && !tn.startsWith("java.util.")) continue
+                    if (tn.startsWith("android.") || tn.startsWith("kotlin.")) continue
+                    try {
+                        f.isAccessible = true
+                        val v = f.get(obj) ?: continue
+                        if (v.javaClass.name == target) return v
+                        val n = v.javaClass.name
+                        if (n.startsWith("com.tencent.") || v is List<*> || v is Array<*>) {
+                            queue.add(v)
+                        }
+                    } catch (_: Throwable) {
+                    }
+                }
+                c = c.superclass
+            }
+        }
+        return null
     }
 
     private fun insertToMediaStore(activity: Activity, file: File): Uri? {
