@@ -19,11 +19,26 @@ object PhotoSendClicker {
             activity.intent?.getBooleanExtra(QqPhotoSender.EXTRA_AUTO_SEND, false) == true
         } catch (_: Throwable) { false }
         LogX.i("PhotoSendClicker onResumed auto=$auto")
+        try {
+            val it = activity.intent
+            if (it != null) {
+                val sb = StringBuilder("PhotoSendClicker intent extras:")
+                for (k in it.extras?.keySet() ?: emptySet()) {
+                    sb.append(k).append("=").append(it.extras?.get(k)).append(" | ")
+                }
+                LogX.i(sb.toString())
+            }
+        } catch (t: Throwable) {
+            LogX.e("dump intent fail", t)
+        }
         if (!auto) return
+        LogX.i("PhotoSendClicker 准备调度 click")
         click(activity, 0)
+        LogX.i("PhotoSendClicker click 已调度")
     }
 
     private fun click(activity: Activity, attempt: Int) {
+        LogX.i("PhotoSendClicker click() 进入 attempt=$attempt")
         if (attempt >= 6) return
         handler.postDelayed({
             try {

@@ -6,16 +6,18 @@ import com.bettersticker.shared.LogX
 import java.io.File
 import java.util.ArrayList
 
-/**
- * 走 QQ 原版“发图片”流程：启动 SendPhotoActivity 并自动点发送。
- * 这是最可靠的图片消息发送路径（与用户从相册选图发送完全一致）。
- */
+/** 走 QQ 原版 SendPhotoActivity 发图片：传 PHOTO_PATHS + session_info，自动点发送。 */
 object QqPhotoSender {
     const val EXTRA_AUTO_SEND = "bettersticker_auto_send"
 
     @JvmStatic
     fun send(activity: Activity, file: File): Boolean {
         return try {
+            val app = QqSessionStore.currentApp() ?: QqRuntimeFinder.app(activity)
+            val loader = app?.javaClass?.classLoader ?: activity.classLoader
+            val aioparam = QqRuntimeFinder.aioparam(activity)
+            val session = QqSessionStore.currentSession()
+                ?: (aioparam?.let { QqRuntimeFinder.buildSessionInfo(it, loader) })
             val paths = ArrayList<String>()
             paths.add(file.absolutePath)
             val intent = Intent().setClassName(
@@ -23,12 +25,17 @@ object QqPhotoSender {
                 "com.tencent.mobileqq.activity.photo.SendPhotoActivity"
             )
             intent.putStringArrayListExtra("PhotoConst.PHOTO_PATHS", paths)
+            intent.putExtra("PhotoConst.PHOTO_SELECT_ACTIVITY_PACKAGE_NAME", "com.tencent.mobileqq")
+            intent.putExtra("PhotoConst.PHOTO_SELECT_ACTIVITY_CLASS_NAME", "com.tencent.mobileqq.activity.SplashActivity")
             intent.putExtra("PhotoConst.SINGLE_PHOTO_PATH", file.absolutePath)
             intent.putExtra("PhotoConst.PHOTO_COUNT", 1)
+            if (session != null) {
+                intent.putExtra("session_info", session as android.os.Parcelable)
+            }
             intent.putExtra(EXTRA_AUTO_SEND, true)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             activity.startActivity(intent)
-            LogX.i("已启动 SendPhotoActivity 自动发送: ${file.name}")
+            LogX.i("已启动 SendPhotoActivity 自动发送: ${file.name} session=${session != null}")
             true
         } catch (t: Throwable) {
             LogX.e("启动 SendPhotoActivity 失败", t)
