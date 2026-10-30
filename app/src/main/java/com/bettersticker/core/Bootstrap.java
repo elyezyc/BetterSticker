@@ -162,6 +162,23 @@ public final class Bootstrap {
             LogX.w("ChatFragment.onResume 扫描安装失败: " + t);
         }
 
+        // 通用 Fragment.onResume 兜底：有些版本 ChatFragment 类名/父类不同。
+        try {
+            Class<?> fragmentClass = HookRuntime.findClass("androidx.fragment.app.Fragment");
+            if (fragmentClass != null) {
+                Method fr = fragmentClass.getDeclaredMethod("onResume");
+                XHooker.hookAfter(fr, param -> {
+                    if (param.obj == null) return;
+                    if (param.obj.getClass().getName().contains("ChatFragment")) {
+                        QqSessionStore.captureFromFragment(param.obj);
+                    }
+                });
+                LogX.i("Bootstrap 已安装 Fragment.onResume 兜底");
+            }
+        } catch (Throwable t) {
+            LogX.w("Fragment.onResume 兜底安装失败: " + t);
+        }
+
         LogX.i("Bootstrap 已安装 Instrumentation Hook");
     }
 

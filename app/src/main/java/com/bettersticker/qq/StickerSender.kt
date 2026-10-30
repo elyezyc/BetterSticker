@@ -230,31 +230,75 @@ object StickerSender {
 
     private fun findAioContext(activity: Activity): Any? {
         QqSessionStore.currentAio()?.let { return it }
+        // AIOContextHolder 的静态 WeakReference 兜底。
+        try {
+            val holder = com.bettersticker.core.HookRuntime.findClass(
+                "com.tencent.qqnt.qwallet.aio.AIOContextHolder")
+            if (holder != null) {
+                val f = holder.getDeclaredField("e")
+                f.isAccessible = true
+                val v = f.get(null)
+                val aio = if (v is java.lang.ref.WeakReference<*>) v.get() else v
+                if (aio != null) return aio
+            }
+        } catch (_: Throwable) {
+        }
+        val visitedManagers = java.util.Collections.newSetFromMap(
+            java.util.IdentityHashMap<Any, Boolean>())
         for (getter in arrayOf("getSupportFragmentManager", "getFragmentManager")) {
             try {
                 val fm = activity.javaClass.getMethod(getter).invoke(activity) ?: continue
-                val fragments = fm.javaClass.getMethod("getFragments").invoke(fm) as? List<*>
-                    ?: continue
-                for (f in fragments) {
-                    if (f == null || !f.javaClass.name.contains("ChatFragment")) continue
-                    var c: Class<*>? = f.javaClass
-                    while (c != null) {
-                        try {
-                            val field = c.getDeclaredField("currentContext")
-                            field.isAccessible = true
-                            val value = field.get(f)
-                            if (value is java.lang.ref.WeakReference<*>) {
-                                value.get()?.let { return it }
-                            } else if (value != null) {
-                                return value
-                            }
-                        } catch (_: Throwable) {
-                        }
-                        c = c.superclass
-                    }
-                }
+                findInFragmentManager(fm, visitedManagers, 0)?.let { return it }
             } catch (_: Throwable) {
             }
+        }
+        return null
+    }
+
+    private fun findInFragmentManager(
+        fm: Any,
+        visitedManagers: MutableSet<Any>,
+        depth: Int,
+    ): Any? {
+        if (depth > 4 || !visitedManagers.add(fm)) return null
+        try {
+            val fragments = fm.javaClass.getMethod("getFragments").invoke(fm) as? List<*>
+                ?: return null
+            for (f in fragments) {
+                if (f == null) continue
+                val cls = f.javaClass.name
+                if (cls.contains("ChatFragment")) {
+                    val ctx = readCurrentContext(f)
+                    if (ctx != null) {
+                        LogX.i("通过 Fragment 找到 AIOContext: $cls")
+                        return ctx
+                    }
+                }
+                try {
+                    val child = f.javaClass.getMethod("getChildFragmentManager").invoke(f)
+                    if (child != null) {
+                        findInFragmentManager(child, visitedManagers, depth + 1)?.let { return it }
+                    }
+                } catch (_: Throwable) {
+                }
+            }
+        } catch (_: Throwable) {
+        }
+        return null
+    }
+
+    private fun readCurrentContext(fragment: Any): Any? {
+        var c: Class<*>? = fragment.javaClass
+        while (c != null) {
+            try {
+                val field = c.getDeclaredField("currentContext")
+                field.isAccessible = true
+                val v = field.get(fragment)
+                val ctx = if (v is java.lang.ref.WeakReference<*>) v.get() else v
+                if (ctx != null) return ctx
+            } catch (_: Throwable) {
+            }
+            c = c.superclass
         }
         return null
     }
