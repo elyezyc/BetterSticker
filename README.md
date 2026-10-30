@@ -198,8 +198,8 @@ adb install app/build/outputs/apk/release/app-release.apk
 9. **收藏/分组数据没有云同步**  
    只在本机；清除 QQ 数据会一起清掉。
 
-10. **没有选择开源许可证**  
-    仓库目前只放源码，未声明 LICENSE；如果要复用，请先联系作者。
+10. **GPLv3 的“or later”需要保留声明**  
+    本项目按 GPL-3.0-or-later 发布；再分发时请保留 `LICENSE`、`NOTICE` 和版权声明。
 
 ---
 
@@ -267,6 +267,17 @@ adb install app/build/outputs/apk/release/app-release.apk
 签名配置在 `key/keystore.properties`，不会提交到仓库。
 
 ---
+
+## 许可证
+
+BetterSticker 以 **GPL-3.0-or-later** 发布。
+
+```text
+Copyright (C) 2026 elyezyc
+SPDX-License-Identifier: GPL-3.0-or-later
+```
+
+完整文本见 [LICENSE](LICENSE)；第三方组件（Xposed API、Material Components 等）仍遵循各自许可证。
 
 ## 参考与致谢
 
