@@ -18,7 +18,8 @@ object QqPicSender {
     @JvmStatic
     fun send(activity: Activity, file: File): Boolean {
         return try {
-            val session = QqSessionStore.currentSession() ?: findSession(activity)
+            val session = QqSessionStore.currentSession()
+                ?: QqRuntimeFinder.session(activity)
             if (session == null) {
                 LogX.w("sendPic: SessionInfo 为空")
                 return false
@@ -35,16 +36,8 @@ object QqPicSender {
                 LogX.w("sendPic: 找不到 ChatActivityFacade buildPic")
                 return false
             }
-            val app = QqSessionStore.currentApp() ?: run {
-                try {
-                    val base = HookRuntime.findClass(
-                        "com.tencent.common.app.BaseApplicationImpl")
-                    val appObj = base?.getMethod("getApplication")?.invoke(null)
-                    appObj?.javaClass?.getMethod("getRuntime")?.invoke(appObj)
-                } catch (_: Throwable) {
-                    null
-                }
-            } ?: run {
+            val app = QqSessionStore.currentApp()
+                ?: QqRuntimeFinder.app(activity) ?: run {
                 LogX.w("sendPic: QQAppInterface 为空")
                 return false
             }

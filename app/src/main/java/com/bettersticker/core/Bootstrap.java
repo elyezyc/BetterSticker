@@ -14,6 +14,7 @@ import com.bettersticker.hook.LongPressHook;
 import com.bettersticker.hook.TriggerRegistry;
 import com.bettersticker.qq.QqMenuHook;
 import com.bettersticker.qq.QqSessionStore;
+import com.bettersticker.qq.SendTrace;
 import com.bettersticker.qq.QqEmoticonCallbackStore;
 import com.bettersticker.imports.ActivityResultHook;
 import com.bettersticker.qq.QqMenuItemHook;
@@ -272,6 +273,11 @@ public final class Bootstrap {
                 QqMenuHook.install();
             } catch (Throwable ignored) {
             }
+        }
+        try {
+            SendTrace.install();
+        } catch (Throwable t) {
+            LogX.e("SendTrace.install 失败", t);
         }
         try {
             QqEmoticonCallbackStore.install();

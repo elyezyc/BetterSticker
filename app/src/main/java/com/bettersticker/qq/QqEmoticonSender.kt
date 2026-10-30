@@ -2,27 +2,31 @@ package com.bettersticker.qq
 
 import android.app.Activity
 import android.widget.Toast
-import com.bettersticker.core.HookRuntime
 import com.bettersticker.shared.LogX
 import java.io.File
 import java.lang.reflect.Modifier
 
 /**
  * QQ 9.x 的 ChatActivityFacade.C(...)：
- * (QQAppInterface, Context, SessionInfo, Emoticon, StickerInfo)V
+ * (QQAppInterface, Context, SessionInfo, Emoticon, StickerInfo)V —— sendEmosmMsg。
  *
- * 这是 QQ 自己的 sendEmosmMsg，直接接受 SessionInfo，不要求 AIOContext。
+ * 关键点：所有反射类都用“真实 QQAppInterface 的 ClassLoader”加载，避免
+ * classloader 不一致导致的 "argument has type X, got X"。
  */
 object QqEmoticonSender {
 
     @JvmStatic
     fun send(activity: Activity, file: File): Boolean {
         return try {
-            val facade = HookRuntime.findClass(
-                "com.tencent.mobileqq.activity.ChatActivityFacade") ?: run {
-                LogX.w("sendEmosmMsg: ChatActivityFacade 类不存在")
+            val app = QqSessionStore.currentApp()
+                ?: QqRuntimeFinder.app(activity)
+            if (app == null) {
+                LogX.w("sendEmosmMsg: QQAppInterface 为空")
                 return false
             }
+            val loader = app.javaClass.classLoader
+            val facade = Class.forName(
+                "com.tencent.mobileqq.activity.ChatActivityFacade", false, loader)
             val method = facade.declaredMethods.firstOrNull {
                 Modifier.isStatic(it.modifiers) && it.parameterCount == 5
                         && it.parameterTypes[0].name.contains("QQAppInterface")
@@ -31,36 +35,36 @@ object QqEmoticonSender {
                         && it.parameterTypes[3].name.endsWith("Emoticon")
                         && it.parameterTypes[4].name.endsWith("StickerInfo")
                         && it.returnType == Void.TYPE
-            } ?: run {
+            }
+            if (method == null) {
                 LogX.w("sendEmosmMsg: 找不到 ChatActivityFacade.C")
                 return false
             }
+            val aioparam = QqRuntimeFinder.aioparam(activity)
             val session = QqSessionStore.currentSession()
-                ?: QqPicSender.findSession(activity) ?: run {
+                ?: (aioparam?.let { QqRuntimeFinder.buildSessionInfo(it, loader) })
+            if (session == null) {
                 LogX.w("sendEmosmMsg: SessionInfo 为空")
                 return false
             }
-            val app = QqSessionStore.currentApp()
-                ?: QqPicSender.findApp() ?: run {
-                LogX.w("sendEmosmMsg: QQAppInterface 为空")
-                return false
-            }
-            val emoClass = HookRuntime.findClass(
-                "com.tencent.mobileqq.data.Emoticon") ?: run {
-                LogX.w("sendEmosmMsg: Emoticon 类不存在")
-                return false
-            }
+            val emoClass = Class.forName(
+                "com.tencent.mobileqq.data.Emoticon", false, loader)
             val emo = emoClass.getDeclaredConstructor().newInstance()
             setField(emo, "path", file.absolutePath)
             setField(emo, "epId", "")
             setField(emo, "eId", "")
             setField(emo, "jobType", 0)
-            val stickerClass = HookRuntime.findClass(
-                "com.tencent.mobileqq.emoticon.StickerInfo")
-            val sticker = stickerClass?.getDeclaredConstructor()?.newInstance()
+            var sticker: Any? = null
+            try {
+                val stickerClass = Class.forName(
+                    "com.tencent.mobileqq.emoticon.StickerInfo", false, loader)
+                sticker = stickerClass.getDeclaredConstructor().newInstance()
+            } catch (_: Throwable) {
+            }
+            val finalSticker = sticker
             activity.runOnUiThread {
                 try {
-                    method.invoke(null, app, activity, session, emo, sticker)
+                    method.invoke(null, app, activity, session, emo, finalSticker)
                     Toast.makeText(activity, "已发送表情", Toast.LENGTH_SHORT).show()
                 } catch (t: Throwable) {
                     LogX.e("sendEmosmMsg 发送失败", t)

@@ -33,6 +33,7 @@ public final class DebugReceiver extends BroadcastReceiver {
     public static final String ACTION_STATUS = Config.ACTION_PREFIX + "STATUS";
     public static final String ACTION_MARK = Config.ACTION_PREFIX + "MARK";
     public static final String ACTION_REQUEST_STATUS = Config.ACTION_PREFIX + "REQUEST_STATUS";
+    public static final String ACTION_SESSION = Config.ACTION_PREFIX + "SESSION";
     public static final String ACTION_STATUS_RESULT = Config.ACTION_PREFIX + "STATUS_RESULT";
 
     private static final AtomicBoolean REGISTERED = new AtomicBoolean();
@@ -50,6 +51,7 @@ public final class DebugReceiver extends BroadcastReceiver {
             f.addAction(ACTION_STATUS);
             f.addAction(ACTION_MARK);
             f.addAction(ACTION_REQUEST_STATUS);
+            f.addAction(ACTION_SESSION);
             if (Build.VERSION.SDK_INT >= 33) {
                 context.registerReceiver(new DebugReceiver(), f, Context.RECEIVER_EXPORTED);
             } else {
@@ -119,6 +121,16 @@ public final class DebugReceiver extends BroadcastReceiver {
                     LogX.i("MARK 结果: " + r + " inputs=" + inputs);
                     Toast.makeText(context, "MARK: " + r + "\n输入区探针: " + inputs,
                             Toast.LENGTH_LONG).show();
+                    break;
+                }
+                case ACTION_SESSION: {
+                    Activity a = com.bettersticker.hook.ActivityTracker.current();
+                    if (a == null) {
+                        Toast.makeText(context, "当前没有前台 Activity", Toast.LENGTH_SHORT).show();
+                    } else {
+                        String r = com.bettersticker.core.SessionProbe.dump(a);
+                        Toast.makeText(context, "Session 探针: " + r, Toast.LENGTH_SHORT).show();
+                    }
                     break;
                 }
                 case ACTION_REQUEST_STATUS: {

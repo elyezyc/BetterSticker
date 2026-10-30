@@ -38,6 +38,10 @@ object StickerSender {
             return false
         }
         // 优先走 QQ 原版 PicEmoticonInfoSender；需要当前 AIO session。
+        if (sendViaPicEmoticon(activity, file)) {
+            LogX.i("QQ 原版 PicEmoticonInfoSender(5参) 已提交")
+            return true
+        }
         if (QqEmoticonSender.send(activity, file)) {
             LogX.i("QQ 原版 ChatActivityFacade.C sendEmosmMsg 已提交")
             return true
@@ -48,10 +52,6 @@ object StickerSender {
         }
         if (sendViaCallback(activity, file)) {
             LogX.i("QQ 原版 EmoticonCallback 已提交")
-            return true
-        }
-        if (sendViaPicEmoticon(activity, file)) {
-            LogX.i("QQ 原版 PicEmoticonInfoSender 已提交")
             return true
         }
         LogX.w("PicEmoticonInfoSender 不可用，尝试粘贴兜底")
@@ -151,50 +151,56 @@ object StickerSender {
         }
     }
 
-    /** 用 QQ 原版 PicEmoticonInfoSender 发送本地 PicEmoticonInfo。 */
+    /** 用 QQ 原版 PicEmoticonInfoSender.send(AppRuntime,Context,n,Emoticon,StickerInfo) 发本地图。 */
     private fun sendViaPicEmoticon(activity: Activity, file: File): Boolean {
         return try {
-            val session = findAioSession(activity)
-            LogX.i("PicEmoticonInfoSender session="
-                    + (session?.javaClass?.name ?: "null"))
-            if (session == null) return false
-            val appClass = com.bettersticker.core.HookRuntime.findClass(
-                "com.tencent.common.app.BaseApplicationImpl") ?: return false
-            val app = appClass.getMethod("getApplication").invoke(null) ?: return false
-            val runtime = app.javaClass.getMethod("getRuntime").invoke(app) ?: return false
-            val infoClass = com.bettersticker.core.HookRuntime.findClass(
-                "com.tencent.mobileqq.emoticonview.PicEmoticonInfo") ?: return false
-            val emoClass = com.bettersticker.core.HookRuntime.findClass(
-                "com.tencent.mobileqq.data.Emoticon") ?: return false
-            val info = infoClass.getConstructor(String::class.java)
-                .newInstance("")
-            val emoticon = emoClass.getDeclaredConstructor().newInstance()
-            setField(emoClass, emoticon, "path", file.absolutePath)
-            setField(emoClass, emoticon, "epId", "")
-            setField(emoClass, emoticon, "eId", "")
-            setField(emoClass, emoticon, "jobType", 0)
-            infoClass.getField("emoticon").set(info, emoticon)
-            val sender = com.bettersticker.core.HookRuntime.findClass(
-                "com.tencent.mobileqq.emoticonview.sender.PicEmoticonInfoSender")
-                ?: return false
-            val edit = findChatInput(activity) ?: return false
+            val app = QqRuntimeFinder.app(activity)
+            if (app == null) { LogX.w("Pic5: QQAppInterface 为空"); return false }
+            val loader = app.javaClass.classLoader
+            val session = QqSessionStore.currentSession()
+                ?: QqRuntimeFinder.aioparam(activity)?.let {
+                    QqRuntimeFinder.buildSessionInfo(it, loader)
+                }
+            if (session == null) { LogX.w("Pic5: session 为空"); return false }
+            val sender = Class.forName(
+                "com.tencent.mobileqq.emoticonview.sender.PicEmoticonInfoSender",
+                false, loader)
             val m = sender.methods.firstOrNull {
                 it.name == "send" && it.parameterCount == 5
-            } ?: return false
+                        && it.parameterTypes[0].name == "mqq.app.AppRuntime"
+                        && it.parameterTypes[2].name.endsWith("aio.n")
+            } ?: sender.declaredMethods.firstOrNull {
+                it.name == "send" && it.parameterCount == 5
+                        && it.parameterTypes[0].name == "mqq.app.AppRuntime"
+                        && it.parameterTypes[2].name.endsWith("aio.n")
+            }
+            if (m == null) {
+                LogX.w("Pic5: send(AppRuntime,Context,n,Emoticon,StickerInfo) 不存在, "
+                        + sender.methods.filter { it.name == "send" }
+                            .joinToString(";") { it.parameterCount.toString() + ":" + it.parameterTypes.joinToString(",") { p -> p.name } })
+                return false
+            }
+            val emoClass = Class.forName(
+                "com.tencent.mobileqq.data.Emoticon", false, loader)
+            val emo = emoClass.getDeclaredConstructor().newInstance()
+            setField(emoClass, emo, "path", file.absolutePath)
+            setField(emoClass, emo, "epId", "")
+            setField(emoClass, emo, "eId", "")
+            setField(emoClass, emo, "jobType", 0)
             var ok = false
             activity.runOnUiThread {
                 try {
-                    m.invoke(null, info, runtime, activity, edit, session)
+                    m.invoke(null, app, activity, session, emo, null)
                     ok = true
                     Toast.makeText(activity, "已发送表情", Toast.LENGTH_SHORT).show()
                 } catch (t: Throwable) {
-                    LogX.e("PicEmoticonInfo 发送失败", t)
+                    LogX.e("Pic5 发送失败", t)
                     Toast.makeText(activity, "发送失败: ${t.message}", Toast.LENGTH_LONG).show()
                 }
             }
             ok
         } catch (t: Throwable) {
-            LogX.w("PicEmoticonInfo 发送入口不可用: $t")
+            LogX.w("Pic5 入口不可用: $t")
             false
         }
     }
