@@ -36,6 +36,10 @@ object StickerSender {
             Toast.makeText(activity, "表情文件不存在", Toast.LENGTH_SHORT).show()
             return false
         }
+        val aio = findAioContext(activity)
+        if (aio != null && sendViaAio(activity, file, aio)) {
+            return true
+        }
         val input = findChatInput(activity)
         if (input == null) {
             Toast.makeText(activity, "没有找到当前聊天输入框", Toast.LENGTH_LONG).show()
@@ -87,6 +91,63 @@ object StickerSender {
                 Toast.makeText(activity, "发送失败: ${t.message}", Toast.LENGTH_LONG).show()
             }
         }, if (attempt == 0) 600L else 500L)
+    }
+
+    /** 直接读当前 ChatFragment.currentContext，不依赖全局捕获。 */
+    private fun findAioContext(activity: Activity): Any? {
+        for (getter in arrayOf("getSupportFragmentManager", "getFragmentManager")) {
+            try {
+                val fm = activity.javaClass.getMethod(getter).invoke(activity) ?: continue
+                val fragments = fm.javaClass.getMethod("getFragments").invoke(fm) as? List<*>
+                    ?: continue
+                for (f in fragments) {
+                    if (f == null || !f.javaClass.name.contains("ChatFragment")) continue
+                    var c: Class<*>? = f.javaClass
+                    while (c != null) {
+                        try {
+                            val field = c.getDeclaredField("currentContext")
+                            field.isAccessible = true
+                            val value = field.get(f)
+                            if (value is java.lang.ref.WeakReference<*>) {
+                                value.get()?.let { return it }
+                            } else if (value != null) {
+                                return value
+                            }
+                        } catch (_: Throwable) {
+                        }
+                        c = c.superclass
+                    }
+                }
+            } catch (_: Throwable) {
+            }
+        }
+        return null
+    }
+
+    /** 调用 QQ 原版 AIO 表情发送。 */
+    private fun sendViaAio(activity: Activity, file: File, aio: Any): Boolean {
+        return try {
+            val apiClass = com.bettersticker.core.HookRuntime.findClass(
+                "com.tencent.qqnt.aio.api.impl.AIOEmoApiImpl") ?: return false
+            val aioClass = com.bettersticker.core.HookRuntime.findClass(
+                "com.tencent.aio.api.runtime.a") ?: return false
+            val api = apiClass.getDeclaredConstructor().newInstance()
+            val method = apiClass.getMethod(
+                "sendRandomPicEmotionMsgFromAIO", String::class.java, aioClass)
+            activity.runOnUiThread {
+                try {
+                    method.invoke(api, file.absolutePath, aio)
+                    Toast.makeText(activity, "已发送表情", Toast.LENGTH_SHORT).show()
+                } catch (t: Throwable) {
+                    LogX.e("QQ 原生发送失败", t)
+                    Toast.makeText(activity, "发送失败: ${t.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+            true
+        } catch (t: Throwable) {
+            LogX.w("找不到 QQ 原生表情发送入口: $t")
+            false
+        }
     }
 
     private fun insertToMediaStore(activity: Activity, file: File): Uri? {
