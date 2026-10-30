@@ -190,6 +190,57 @@ object StickerSender {
                 c = c.superclass
             }
         }
+        return sessionFromAio(activity)
+    }
+
+    /** 从 ChatFragment.currentContext -> AIOParam -> AIOSession -> AIOContact 构造旧版 session。 */
+    private fun sessionFromAio(activity: Activity): Any? {
+        try {
+            val aio = findAioContext(activity) ?: return null
+            val param = aio.javaClass.getMethod("g").invoke(aio) ?: return null
+            val session = param.javaClass.getMethod("o").invoke(param) ?: return null
+            val contact = session.javaClass.getMethod("b").invoke(session) ?: return null
+            val nClass = com.bettersticker.core.HookRuntime.findClass(
+                "com.tencent.mobileqq.activity.aio.n") ?: return null
+            val n = nClass.getDeclaredConstructor().newInstance()
+            setField(nClass, n, "d", contact.javaClass.getField("d").get(contact))
+            setField(nClass, n, "e", contact.javaClass.getField("e").get(contact))
+            setField(nClass, n, "f", contact.javaClass.getField("e").get(contact))
+            setField(nClass, n, "h", contact.javaClass.getField("e").get(contact))
+            return n
+        } catch (t: Throwable) {
+            LogX.w("从 AIOContext 构造 session 失败: $t")
+            return null
+        }
+    }
+
+    private fun findAioContext(activity: Activity): Any? {
+        for (getter in arrayOf("getSupportFragmentManager", "getFragmentManager")) {
+            try {
+                val fm = activity.javaClass.getMethod(getter).invoke(activity) ?: continue
+                val fragments = fm.javaClass.getMethod("getFragments").invoke(fm) as? List<*>
+                    ?: continue
+                for (f in fragments) {
+                    if (f == null || !f.javaClass.name.contains("ChatFragment")) continue
+                    var c: Class<*>? = f.javaClass
+                    while (c != null) {
+                        try {
+                            val field = c.getDeclaredField("currentContext")
+                            field.isAccessible = true
+                            val value = field.get(f)
+                            if (value is java.lang.ref.WeakReference<*>) {
+                                value.get()?.let { return it }
+                            } else if (value != null) {
+                                return value
+                            }
+                        } catch (_: Throwable) {
+                        }
+                        c = c.superclass
+                    }
+                }
+            } catch (_: Throwable) {
+            }
+        }
         return null
     }
 

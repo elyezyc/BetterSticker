@@ -140,7 +140,15 @@ public final class Bootstrap {
             Class<?> chatFragment = HookRuntime.findClass(
                     "com.tencent.aio.main.fragment.ChatFragment");
             if (chatFragment != null) {
-                Method fr = HookRuntime.findMethod(chatFragment, "onResume");
+                Method fr = null;
+                try {
+                    fr = chatFragment.getDeclaredMethod("onResume");
+                } catch (Throwable ignored) {
+                    try {
+                        fr = chatFragment.getMethod("onResume");
+                    } catch (Throwable ignored2) {
+                    }
+                }
                 if (fr != null) {
                     XHooker.hookAfter(fr, param -> {
                         Activity a = ActivityTracker.current();
