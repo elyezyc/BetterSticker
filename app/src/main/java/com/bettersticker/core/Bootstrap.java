@@ -180,6 +180,27 @@ public final class Bootstrap {
             LogX.w("Fragment.onResume 兜底安装失败: " + t);
         }
 
+        // RootAIOVB 构建视图时直接拿 MviContext/AIOContext。
+        try {
+            Class<?> root = HookRuntime.findClass(
+                    "com.tencent.aio.part.root.mvx.vb.RootAIOVB");
+            if (root != null) {
+                for (java.lang.reflect.Method m : root.getDeclaredMethods()) {
+                    if (!m.getName().equals("buildViewTree")
+                            && !m.getName().equals("preBuildViewTree")) continue;
+                    final int idx = m.getName().equals("buildViewTree") ? 2 : 3;
+                    XHooker.hookAfter(m, param -> {
+                        if (param.args != null && param.args.length > idx) {
+                            QqSessionStore.captureAio(param.args[idx]);
+                        }
+                    });
+                }
+                LogX.i("Bootstrap 已安装 RootAIOVB AIOContext 捕获");
+            }
+        } catch (Throwable t) {
+            LogX.w("RootAIOVB 捕获安装失败: " + t);
+        }
+
         LogX.i("Bootstrap 已安装 Instrumentation Hook");
     }
 

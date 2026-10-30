@@ -41,6 +41,22 @@ object QqSessionStore {
     @JvmStatic
     fun currentAio(): Any? = aioRef?.get()
 
+    /** RootAIOVB 构建视图时传入的 MviContext 就是当前 AIOContext。 */
+    @JvmStatic
+    fun captureAio(aio: Any?) {
+        if (aio == null) return
+        try {
+            val cls = aio.javaClass
+            if (cls.name == "com.tencent.aio.api.runtime.a"
+                    || cls.interfaces.any { it.name == "com.tencent.aio.api.runtime.a" }
+                    || cls.name.contains("AIOContext")) {
+                aioRef = WeakReference(aio)
+                LogX.i("已捕获 RootAIOVB AIOContext: ${cls.name}")
+            }
+        } catch (_: Throwable) {
+        }
+    }
+
     /** ChatFragment.onResume 时直接读 currentContext（WeakReference<AIOContext>）。 */
     @JvmStatic
     fun captureFromFragment(fragment: Any?) {
