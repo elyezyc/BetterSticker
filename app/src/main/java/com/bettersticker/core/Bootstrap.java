@@ -201,6 +201,33 @@ public final class Bootstrap {
             LogX.w("RootAIOVB 捕获安装失败: " + t);
         }
 
+        // 按 QTool 的方式捕获 BaseChatPie 里的 SessionInfo / QQAppInterface。
+        try {
+            Class<?> pie = HookRuntime.findClass(
+                    "com.tencent.mobileqq.activity.aio.core.BaseChatPie");
+            if (pie != null) {
+                Method init = null;
+                try {
+                    init = pie.getDeclaredMethod("s");
+                } catch (Throwable ignored) {
+                    for (Method m : pie.getDeclaredMethods()) {
+                        if (m.getParameterCount() == 0
+                                && m.getReturnType() == void.class) {
+                            init = m;
+                            break;
+                        }
+                    }
+                }
+                if (init != null) {
+                    XHooker.hookAfter(init, param ->
+                            QqSessionStore.captureChatPie(param.obj));
+                    LogX.i("Bootstrap 已安装 BaseChatPie SessionInfo 捕获");
+                }
+            }
+        } catch (Throwable t) {
+            LogX.w("BaseChatPie 捕获安装失败: " + t);
+        }
+
         LogX.i("Bootstrap 已安装 Instrumentation Hook");
     }
 

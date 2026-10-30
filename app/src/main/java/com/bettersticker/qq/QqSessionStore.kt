@@ -4,6 +4,7 @@ import com.bettersticker.core.HookRuntime
 import com.bettersticker.shared.LogX
 import com.bettersticker.shared.hook.XHooker
 import java.lang.ref.WeakReference
+import java.lang.reflect.Modifier
 import java.util.concurrent.atomic.AtomicBoolean
 
 /** 记录当前 AIO session（com.tencent.mobileqq.activity.aio.n），供原版表情发送使用。 */
@@ -13,6 +14,10 @@ object QqSessionStore {
     private var ref: WeakReference<Any>? = null
     @Volatile
     private var aioRef: WeakReference<Any>? = null
+    @Volatile
+    private var sessionRef: WeakReference<Any>? = null
+    @Volatile
+    private var appRef: WeakReference<Any>? = null
 
     @JvmStatic
     fun install() {
@@ -40,6 +45,43 @@ object QqSessionStore {
 
     @JvmStatic
     fun currentAio(): Any? = aioRef?.get()
+
+    @JvmStatic
+    fun currentSession(): Any? = sessionRef?.get()
+
+    @JvmStatic
+    fun currentApp(): Any? = appRef?.get()
+
+    /** BaseChatPie.s() 之后读取 SessionInfo / QQAppInterface，和 QTool 的做法一致。 */
+    @JvmStatic
+    fun captureChatPie(chatPie: Any?) {
+        if (chatPie == null) return
+        try {
+            var c: Class<*>? = chatPie.javaClass
+            while (c != null) {
+                for (f in c.declaredFields) {
+                    if (Modifier.isStatic(f.modifiers)) continue
+                    val tn = f.type.name
+                    if (!tn.endsWith("SessionInfo")
+                            && !tn.contains("QQAppInterface")) continue
+                    try {
+                        f.isAccessible = true
+                        val v = f.get(chatPie) ?: continue
+                        if (tn.endsWith("SessionInfo")) {
+                            sessionRef = WeakReference(v)
+                            LogX.i("已捕获 SessionInfo: ${v.javaClass.name}")
+                        } else {
+                            appRef = WeakReference(v)
+                        }
+                    } catch (_: Throwable) {
+                    }
+                }
+                c = c.superclass
+            }
+        } catch (t: Throwable) {
+            LogX.w("读取 BaseChatPie 字段失败: $t")
+        }
+    }
 
     /** RootAIOVB 构建视图时传入的 MviContext 就是当前 AIOContext。 */
     @JvmStatic

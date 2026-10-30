@@ -1,0 +1,107 @@
+plugins {
+    id 'com.android.application'
+}
+
+var commitCount = getGitHeadRefsSuffix()
+
+android {
+    compileSdk 33
+    ndkVersion '23.1.7779620'
+    defaultConfig {
+        applicationId "cc.hicore.qtool"
+        minSdk 26
+        targetSdk 33
+        if (System.getenv("CommitNumber") != null){
+            println("${System.getenv("CommitNumber")}")
+            versionName "v${System.getenv("CommitNumber")}"
+            versionCode Integer.parseInt("${System.getenv("CommitNumber")}")
+        }else {
+            versionName "v${commitCount}"
+            versionCode Integer.parseInt("${commitCount}")
+        }
+
+        println("versionName:${versionName}")
+        println("versionCode:${versionCode}")
+
+        multiDexEnabled false
+        signingConfigs {
+            release{
+                if (System.getenv("KEYSTORE_PATH") != null){
+                    storeFile = file(System.getenv("KEYSTORE_PATH"))
+                    storePassword = System.getenv("KEYSTORE_PASSWORD")
+                    keyAlias = System.getenv("KEY_ALIAS")
+                    keyPassword = System.getenv("KEY_PASSWORD")
+                }
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
+            }
+        }
+        resConfigs "zh-rCN", "zh"
+        ndk {
+            abiFilters 'armeabi-v7a',"arm64-v8a"
+        }
+    }
+    lint {
+        baseline = file("lint-baseline.xml")
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+
+        }
+        debug{
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    aaptOptions {
+        additionalParameters '--allow-reserved-package-id','--package-id','0x21'
+    }
+    externalNativeBuild {
+        cmake {
+            path "./src/main/adfawhf/CMakeLists.txt"
+            version "3.18.1"
+
+        }
+    }
+    android.applicationVariants.all { variant ->
+        variant.outputs.all {
+            outputFileName = "QTool_v${versionCode}.apk"
+        }
+    }
+}
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.5.1'
+    implementation 'com.google.android.material:material:1.7.0'
+    implementation project(':easy-adapter')
+    implementation project(':XPopup')
+    implementation project(':beanshell20b6')
+    implementation files('../libs/BeanShell/beanshell20b6/libs/dx.jar')
+    compileOnly project(':QQStub')
+
+    compileOnly 'de.robv.android.xposed:api:82'
+
+    annotationProcessor project(':ItemProcesser')
+    implementation project(':ItemProcesser')
+
+    implementation 'com.github.kyuubiran:EzXHelper:1.0.3'
+
+    def appCenterSdkVersion = '4.4.5'
+    implementation "com.microsoft.appcenter:appcenter-analytics:${appCenterSdkVersion}"
+    implementation "com.microsoft.appcenter:appcenter-crashes:${appCenterSdkVersion}"
+
+    implementation 'com.github.bumptech.glide:glide:4.13.2'
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.13.1'
+    implementation "com.airbnb.android:lottie:5.2.0"
+
+    implementation project(':dexkit-android')
+}

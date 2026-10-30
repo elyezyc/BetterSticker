@@ -38,6 +38,10 @@ object StickerSender {
             return false
         }
         // 优先走 QQ 原版 PicEmoticonInfoSender；需要当前 AIO session。
+        if (QqPicSender.send(activity, file)) {
+            LogX.i("QTool 方式 sendPic 已提交")
+            return true
+        }
         if (sendViaCallback(activity, file)) {
             LogX.i("QQ 原版 EmoticonCallback 已提交")
             return true
