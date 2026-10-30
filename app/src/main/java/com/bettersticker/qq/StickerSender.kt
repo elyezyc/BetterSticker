@@ -37,7 +37,12 @@ object StickerSender {
             Toast.makeText(activity, "表情文件不存在", Toast.LENGTH_SHORT).show()
             return false
         }
-        // 优先走 QQ 原版 PicEmoticonInfoSender；需要当前 AIO session。
+        // 首选：走 QQ 原版 SendPhotoActivity 图片发送（最可靠）。
+        if (QqPhotoSender.send(activity, file)) {
+            LogX.i("已交给 QQ SendPhotoActivity 自动发送")
+            return true
+        }
+        // 备选：PicEmoticonInfoSender。
         if (sendViaPicEmoticon(activity, file)) {
             LogX.i("QQ 原版 PicEmoticonInfoSender(5参) 已提交")
             return true

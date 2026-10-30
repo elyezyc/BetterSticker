@@ -14,6 +14,7 @@ import com.bettersticker.hook.LongPressHook;
 import com.bettersticker.hook.TriggerRegistry;
 import com.bettersticker.qq.QqMenuHook;
 import com.bettersticker.qq.QqSessionStore;
+import com.bettersticker.qq.PhotoSendClicker;
 import com.bettersticker.qq.SendTrace;
 import com.bettersticker.qq.QqEmoticonCallbackStore;
 import com.bettersticker.imports.ActivityResultHook;
@@ -84,6 +85,7 @@ public final class Bootstrap {
                 if (param.obj instanceof Activity) {
                     Activity a = (Activity) param.obj;
                     ActivityTracker.onResume(a);
+                    PhotoSendClicker.onResumed(a);
                     if (!APP_READY.get()) {
                         onAppCreated(a.getApplication());
                     }
@@ -104,6 +106,7 @@ public final class Bootstrap {
                     Activity a = (Activity) param.obj;
                     if (ActivityTracker.current() != a) {
                         ActivityTracker.onResume(a);
+                    PhotoSendClicker.onResumed(a);
                     } else {
                         // 同一 Activity 重新拿焦点，也重新扫描一遍输入条。
                         TriggerRegistry.scanActivity(a);
@@ -274,7 +277,11 @@ public final class Bootstrap {
             } catch (Throwable ignored) {
             }
         }
-        // SendTrace 仅用于抓 QQ 原版发送调用链；正式版关闭，避免 hook 过多导致进程启动失败。
+        try {
+            SendTrace.install();
+        } catch (Throwable t) {
+            LogX.e("SendTrace.install 失败", t);
+        }
         try {
             QqEmoticonCallbackStore.install();
         } catch (Throwable t) {

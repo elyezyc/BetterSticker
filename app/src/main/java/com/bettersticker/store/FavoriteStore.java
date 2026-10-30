@@ -497,6 +497,19 @@ public final class FavoriteStore {
         return readAll(f);
     }
 
+    public File firstStickerFile() {
+        try {
+            for (FavoriteItem it : items()) {
+                if (FavoriteItem.TYPE_STICKER.equals(it.type)) {
+                    File f = fileOf(it);
+                    if (f != null && f.isFile()) return f;
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+        return null;
+    }
+
     public File fileOf(FavoriteItem item) {
         return resolveStored(item.storedFile);
     }
