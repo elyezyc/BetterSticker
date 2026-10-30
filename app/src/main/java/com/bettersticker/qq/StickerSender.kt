@@ -38,6 +38,10 @@ object StickerSender {
             return false
         }
         // 优先走 QQ 原版 PicEmoticonInfoSender；需要当前 AIO session。
+        if (sendViaCallback(activity, file)) {
+            LogX.i("QQ 原版 EmoticonCallback 已提交")
+            return true
+        }
         if (sendViaPicEmoticon(activity, file)) {
             LogX.i("QQ 原版 PicEmoticonInfoSender 已提交")
             return true
@@ -94,6 +98,49 @@ object StickerSender {
                 Toast.makeText(activity, "发送失败: ${t.message}", Toast.LENGTH_LONG).show()
             }
         }, if (attempt == 0) 600L else 500L)
+    }
+
+    /** 直接调用当前 QQ 表情面板的 EmoticonCallback.send(PicEmoticonInfo)。 */
+    private fun sendViaCallback(activity: Activity, file: File): Boolean {
+        return try {
+            val callback = QqEmoticonCallbackStore.current()
+            if (callback == null) {
+                LogX.w("EmoticonCallback 尚未捕获")
+                return false
+            }
+            val infoClass = com.bettersticker.core.HookRuntime.findClass(
+                "com.tencent.mobileqq.emoticonview.PicEmoticonInfo") ?: return false
+            val emoClass = com.bettersticker.core.HookRuntime.findClass(
+                "com.tencent.mobileqq.data.Emoticon") ?: return false
+            val info = infoClass.getConstructor(String::class.java).newInstance("")
+            val emoticon = emoClass.getDeclaredConstructor().newInstance()
+            setField(emoClass, emoticon, "path", file.absolutePath)
+            setField(emoClass, emoticon, "epId", "")
+            setField(emoClass, emoticon, "eId", "")
+            setField(emoClass, emoticon, "jobType", 0)
+            infoClass.getField("emoticon").set(info, emoticon)
+            val baseClass = com.bettersticker.core.HookRuntime.findClass(
+                "com.tencent.mobileqq.emoticonview.EmoticonInfo") ?: return false
+            val m = callback.javaClass.methods.firstOrNull {
+                it.name == "send" && it.parameterCount == 1
+                        && it.parameterTypes[0].isAssignableFrom(baseClass)
+            } ?: callback.javaClass.methods.firstOrNull {
+                it.name == "send" && it.parameterCount == 1
+            } ?: return false
+            activity.runOnUiThread {
+                try {
+                    m.invoke(callback, info)
+                    Toast.makeText(activity, "已发送表情", Toast.LENGTH_SHORT).show()
+                } catch (t: Throwable) {
+                    LogX.e("EmoticonCallback 发送失败", t)
+                    Toast.makeText(activity, "发送失败: ${t.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+            true
+        } catch (t: Throwable) {
+            LogX.w("EmoticonCallback 发送入口不可用: $t")
+            false
+        }
     }
 
     /** 用 QQ 原版 PicEmoticonInfoSender 发送本地 PicEmoticonInfo。 */
