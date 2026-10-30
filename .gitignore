@@ -27,3 +27,6 @@ key/
 
 # changelog is local-only
 Change/
+
+.qtool/
+.qtool.zip
