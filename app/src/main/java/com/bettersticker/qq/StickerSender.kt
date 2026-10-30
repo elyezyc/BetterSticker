@@ -32,14 +32,17 @@ object StickerSender {
 
     @JvmStatic
     fun send(activity: Activity, file: File?): Boolean {
+        LogX.i("StickerSender.send: ${file?.absolutePath}")
         if (file == null || !file.isFile) {
             Toast.makeText(activity, "表情文件不存在", Toast.LENGTH_SHORT).show()
             return false
         }
         // 优先走 QQ 原版 PicEmoticonInfoSender；需要当前 AIO session。
         if (sendViaPicEmoticon(activity, file)) {
+            LogX.i("QQ 原版 PicEmoticonInfoSender 已提交")
             return true
         }
+        LogX.w("PicEmoticonInfoSender 不可用，尝试粘贴兜底")
         val input = findChatInput(activity)
         if (input == null) {
             Toast.makeText(activity, "没有找到当前聊天输入框", Toast.LENGTH_LONG).show()
@@ -96,7 +99,10 @@ object StickerSender {
     /** 用 QQ 原版 PicEmoticonInfoSender 发送本地 PicEmoticonInfo。 */
     private fun sendViaPicEmoticon(activity: Activity, file: File): Boolean {
         return try {
-            val session = findAioSession(activity) ?: return false
+            val session = findAioSession(activity)
+            LogX.i("PicEmoticonInfoSender session="
+                    + (session?.javaClass?.name ?: "null"))
+            if (session == null) return false
             val appClass = com.bettersticker.core.HookRuntime.findClass(
                 "com.tencent.common.app.BaseApplicationImpl") ?: return false
             val app = appClass.getMethod("getApplication").invoke(null) ?: return false
