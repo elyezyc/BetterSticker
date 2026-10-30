@@ -187,8 +187,8 @@ adb install app/build/outputs/apk/release/app-release.apk
 5. **SILK 解码器没有内置**  
    语音可以收藏原始 SILK；没有配置解码器时，不会生成假 WAV。
 
-6. **面板的 Material 组件是“受限 MD3”**  
-   QQ 进程里直接使用 Material 组件会要求 `Theme.AppCompat`，所以面板采用 MD3 色板/圆角/胶囊形状的自绘实现；App 自己的页面使用真正的 Material 3。
+6. **面板 Material 主题依赖模块资源注入**  
+   QQ 进程里直接使用 Material 组件会要求 `Theme.AppCompat`。面板会优先加载模块自己的 Material3 主题和资源；个别 ROM/QQ 版本注入失败时，自动退回自绘 MD3，因此不同设备上观感可能略有差异。
 
 7. **没有真机自动化测试**  
    当前仓库里的测试只覆盖 WAV 头、图片签名识别等纯 JVM 逻辑。QQ 注入、发送、文件选择器都需要手动验证。

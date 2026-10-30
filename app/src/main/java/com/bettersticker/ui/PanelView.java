@@ -51,6 +51,7 @@ public final class PanelView extends LinearLayout {
     }
 
     private final Activity activity;
+    private Context md3Context;
     private final Callback callback;
     private final List<FavoriteItem> shown = new ArrayList<>();
 
@@ -71,6 +72,7 @@ public final class PanelView extends LinearLayout {
     public PanelView(Activity activity, String initialTab, Callback callback) {
         super(activity);
         this.activity = activity;
+        this.md3Context = Md3Theme.wrap(activity);
         this.callback = callback;
         if (FavoriteItem.TYPE_VOICE.equals(initialTab)) {
             tab = FavoriteItem.TYPE_VOICE;
@@ -79,7 +81,15 @@ public final class PanelView extends LinearLayout {
         setPadding(Ui.dp(activity, 20), Ui.dp(activity, 18), Ui.dp(activity, 20), Ui.dp(activity, 16));
         setBackground(Ui.rounded(Ui.BG_PANEL, 28, activity, 0x33FFFFFF, 1));
         setElevation(Ui.dp(activity, 12));
-        build();
+        try {
+            build();
+        } catch (Throwable t) {
+            // Material 主题在个别 QQ/ROM 上不可用时，退回自绘 MD3，保证面板能开。
+            LogX.e("Material3 面板构建失败，回退自绘", t);
+            md3Context = null;
+            removeAllViews();
+            build();
+        }
         refresh();
     }
 
@@ -99,9 +109,7 @@ public final class PanelView extends LinearLayout {
         header.addView(titles, new LinearLayout.LayoutParams(0,
                 ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
-        TextView close = Ui.text(activity, "关闭", 13, Ui.TEXT_SECONDARY, false);
-        close.setPadding(Ui.dp(activity, 14), Ui.dp(activity, 9), Ui.dp(activity, 6), Ui.dp(activity, 9));
-        close.setBackground(Ui.rounded(0x1AFFFFFF, 20, activity, 0, 0));
+        TextView close = Md3Theme.button(md3Context, activity, "关闭", false);
         close.setOnClickListener(v -> callback.onClose());
         header.addView(close);
         addView(header, new LinearLayout.LayoutParams(
@@ -111,8 +119,8 @@ public final class PanelView extends LinearLayout {
         LinearLayout tabs = new LinearLayout(activity);
         tabs.setOrientation(HORIZONTAL);
         tabs.setPadding(0, Ui.dp(activity, 12), 0, 0);
-        tabSticker = Ui.text(activity, "表情", 14, Ui.TEXT_PRIMARY, true);
-        tabVoice = Ui.text(activity, "语音", 14, Ui.TEXT_SECONDARY, false);
+        tabSticker = Md3Theme.tab(md3Context, activity, "表情", true);
+        tabVoice = Md3Theme.tab(md3Context, activity, "语音", false);
         tabSticker.setOnClickListener(v -> switchTab(FavoriteItem.TYPE_STICKER));
         tabVoice.setOnClickListener(v -> switchTab(FavoriteItem.TYPE_VOICE));
         LinearLayout.LayoutParams tabLp = new LinearLayout.LayoutParams(0,
@@ -140,7 +148,7 @@ public final class PanelView extends LinearLayout {
         statusRow.setOrientation(HORIZONTAL);
         statusRow.setGravity(Gravity.CENTER_VERTICAL);
         statusRow.setPadding(0, Ui.dp(activity, 8), 0, Ui.dp(activity, 6));
-        status = Ui.text(activity, "", 11, Ui.TEXT_SECONDARY, false);
+        status = Md3Theme.text(md3Context, activity, "", 11, Ui.TEXT_SECONDARY, false);
         statusRow.addView(status, new LinearLayout.LayoutParams(0,
                 ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         TextView importFunbox = Ui.text(activity, "导入", 11, Ui.ACCENT, true);
@@ -183,12 +191,12 @@ public final class PanelView extends LinearLayout {
         footer.setGravity(Gravity.CENTER_VERTICAL);
         footer.setPadding(0, Ui.dp(activity, 12), 0, 0);
 
-        exportBtn = Ui.button(activity, "导出全部", true);
+        exportBtn = Md3Theme.button(md3Context, activity, "导出全部", true);
         exportBtn.setOnClickListener(v -> doExport());
         footer.addView(exportBtn, new LinearLayout.LayoutParams(0,
                 ViewGroup.LayoutParams.WRAP_CONTENT, 1.1f));
 
-        TextView groupExport = Ui.button(activity, "导出本组", false);
+        TextView groupExport = Md3Theme.button(md3Context, activity, "导出本组", false);
         groupExport.setOnClickListener(v -> {
             if (selectedGroup == null) {
                 Toast.makeText(activity, "先在分组条选择一个分组", Toast.LENGTH_SHORT).show();
@@ -201,14 +209,14 @@ public final class PanelView extends LinearLayout {
         glp.setMargins(Ui.dp(activity, 8), 0, 0, 0);
         footer.addView(groupExport, glp);
 
-        TextView refresh = Ui.button(activity, "刷新", false);
+        TextView refresh = Md3Theme.button(md3Context, activity, "刷新", false);
         refresh.setOnClickListener(v -> refresh());
         LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(0,
                 ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
         rlp.setMargins(Ui.dp(activity, 8), 0, 0, 0);
         footer.addView(refresh, rlp);
 
-        TextView close2 = Ui.button(activity, "关闭", false);
+        TextView close2 = Md3Theme.button(md3Context, activity, "关闭", false);
         close2.setOnClickListener(v -> callback.onClose());
         LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(0,
                 ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
@@ -224,9 +232,9 @@ public final class PanelView extends LinearLayout {
         box.setGravity(Gravity.CENTER);
         box.setPadding(Ui.dp(activity, 20), Ui.dp(activity, 20),
                 Ui.dp(activity, 20), Ui.dp(activity, 20));
-        emptyTitle = Ui.text(activity, "还没有收藏", 18, Ui.TEXT_PRIMARY, true);
+        emptyTitle = Md3Theme.text(md3Context, activity, "还没有收藏", 18, Ui.TEXT_PRIMARY, true);
         emptyTitle.setGravity(Gravity.CENTER);
-        emptyBody = Ui.text(activity, "", 12, Ui.TEXT_SECONDARY, false);
+        emptyBody = Md3Theme.text(md3Context, activity, "", 12, Ui.TEXT_SECONDARY, false);
         emptyBody.setGravity(Gravity.CENTER);
         emptyBody.setLineSpacing(Ui.dp(activity, 3), 1f);
         emptyBody.setPadding(0, Ui.dp(activity, 10), 0, 0);
@@ -289,11 +297,8 @@ public final class PanelView extends LinearLayout {
         for (FavoriteGroup g : store.groups()) {
             addGroupChip(g.name, g.id, g.favorite, store);
         }
-        TextView add = Ui.text(activity, "＋", 13, Ui.ACCENT, true);
-        add.setGravity(Gravity.CENTER);
-        add.setPadding(Ui.dp(activity, 12), Ui.dp(activity, 8),
-                Ui.dp(activity, 12), Ui.dp(activity, 8));
-        add.setBackground(Ui.rounded(Ui.BG_CARD, 20, activity, 0, 0));
+        TextView add = Md3Theme.chip(md3Context, activity, "＋", false);
+        add.setTextColor(Ui.ACCENT);
         add.setOnClickListener(v -> newGroupDialog());
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -303,13 +308,7 @@ public final class PanelView extends LinearLayout {
 
     private void addGroupChip(String name, String id, boolean favorite, FavoriteStore store) {
         boolean selected = id == null ? selectedGroup == null : id.equals(selectedGroup);
-        TextView chip = Ui.text(activity, name, 12,
-                selected ? Ui.TEXT_PRIMARY : Ui.TEXT_SECONDARY, selected);
-        chip.setGravity(Gravity.CENTER);
-        chip.setPadding(Ui.dp(activity, 14), Ui.dp(activity, 8),
-                Ui.dp(activity, 14), Ui.dp(activity, 8));
-        chip.setBackground(Ui.rounded(selected ? Ui.BG_CARD_SELECTED : Ui.BG_CARD,
-                20, activity, 0, 0));
+        TextView chip = Md3Theme.chip(md3Context, activity, name, selected);
         chip.setOnClickListener(v -> {
             selectedGroup = id;
             refresh();
@@ -454,16 +453,8 @@ public final class PanelView extends LinearLayout {
 
     private void updateTabStyle() {
         boolean sticker = FavoriteItem.TYPE_STICKER.equals(tab);
-        tabSticker.setTextColor(sticker ? Ui.TEXT_PRIMARY : Ui.TEXT_SECONDARY);
-        tabVoice.setTextColor(!sticker ? Ui.TEXT_PRIMARY : Ui.TEXT_SECONDARY);
-        tabSticker.setBackground(Ui.rounded(sticker ? Ui.BG_CARD_SELECTED : Color.TRANSPARENT,
-                20, activity, 0, 0));
-        tabVoice.setBackground(Ui.rounded(!sticker ? Ui.BG_CARD_SELECTED : Color.TRANSPARENT,
-                20, activity, 0, 0));
-        tabSticker.setPadding(Ui.dp(activity, 18), Ui.dp(activity, 9),
-                Ui.dp(activity, 18), Ui.dp(activity, 9));
-        tabVoice.setPadding(Ui.dp(activity, 18), Ui.dp(activity, 9),
-                Ui.dp(activity, 18), Ui.dp(activity, 9));
+        Md3Theme.select(tabSticker, sticker, activity);
+        Md3Theme.select(tabVoice, !sticker, activity);
     }
 
     private void updateEmpty() {
