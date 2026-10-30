@@ -204,60 +204,9 @@ adb install app/build/outputs/apk/release/app-release.apk
 
 ---
 
-## 1.0.0 更新日志
+## 更新日志
 
-第一个正式版本。
-
-### 面板
-
-- 长按 QQ 输入区表情/语音图标打开面板；
-- 从后台回到 QQ 后重新挂载长按监听；
-- 面板分组条、收藏、批量操作；
-- App 自己的 Material 3 状态页。
-
-### 发送与预览
-
-- 单击表情发送到当前聊天；
-- 长按菜单第一项为“预览”；
-- 发送失败时给出提示，不吞掉原操作。
-
-### 分组
-
-- 默认 / 收藏 / 自定义分组；
-- 新建、重命名、删除、移动；
-- 按 FunBox 的 `Sticker/Storage/<分组>` 目录结构还原分组；
-- 重复导入时更新旧条目的分组。
-
-### 导入
-
-- 从 FunBox ZIP 导入；
-- 从 FunBox 目录迁移（默认 `.fun`、手输绝对路径、系统目录选择器）；
-- 从本地图片导入；
-- 图片格式签名校验：PNG / GIF / WebP / JPEG / SILK。
-
-### 导出
-
-- 导出全部到 `Download/BetterSticker/`；
-- 按分组导出 ZIP；
-- `manifest.json` 记录分组和条目；
-- SILK 可转 WAV（需要解码器）。
-
-### 收藏消息
-
-- QQ 消息长按原生菜单“收藏到 BetterSticker”；
-- 图片/表情/语音读取 QQ 本地文件；
-- 原生菜单失败时顶部浮动按钮兜底。
-
-### 数据与设置
-
-- `index.json` schema 2：`groups`、`groupId`、`favorite`；
-- 旧 schema 1 自动迁移；
-- 收藏目录在 `/sdcard/Android/media/com.tencent.mobileqq/.bs`；
-- 设置项全部在 BetterSticker 自己的 Activity 中，QQ 设置页无注入；
-- 正式签名：`key/key.jks`；
-- 包名：`com.elyezyc.bettersticker`。
-
----
+更新日志放在本地 `Change/v1.0.0.md`，不提交到仓库。
 
 ## 构建
 

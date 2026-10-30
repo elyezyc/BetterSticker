@@ -24,3 +24,6 @@ QQ*.apk
 docs/
 *.jks
 key/
+
+# changelog is local-only
+Change/
