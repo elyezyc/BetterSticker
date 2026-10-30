@@ -13,6 +13,7 @@ import com.bettersticker.hook.ActivityTracker;
 import com.bettersticker.hook.LongPressHook;
 import com.bettersticker.hook.TriggerRegistry;
 import com.bettersticker.qq.QqMenuHook;
+import com.bettersticker.qq.QqSessionStore;
 import com.bettersticker.imports.ActivityResultHook;
 import com.bettersticker.qq.QqMenuItemHook;
 import com.bettersticker.store.FavoriteStore;
@@ -112,6 +113,46 @@ public final class Bootstrap {
             LogX.w("Activity.onWindowFocusChanged 兜底安装失败: " + t);
         }
 
+        // 切换会话不会重建 Activity；输入框每次 attach 后重新扫描一次。
+        try {
+            Method attach = View.class.getDeclaredMethod("onAttachedToWindow");
+            XHooker.hookAfter(attach, param -> {
+                if (!(param.obj instanceof View)) return;
+                View v = (View) param.obj;
+                String cn = v.getClass().getName();
+                if (!(v instanceof android.widget.EditText) && !cn.contains("AIOEditText")) {
+                    return;
+                }
+                Activity a = TriggerConfig.activityOf(v);
+                if (a == null) a = ActivityTracker.current();
+                if (a != null) {
+                    final Activity target = a;
+                    v.postDelayed(() -> TriggerRegistry.scanActivity(target), 350);
+                }
+            });
+            LogX.i("Bootstrap 已安装 View.onAttachedToWindow 输入框扫描");
+        } catch (Throwable t) {
+            LogX.w("View.onAttachedToWindow 扫描安装失败: " + t);
+        }
+
+        // ChatFragment.onResume：每个会话切换都会走一次。
+        try {
+            Class<?> chatFragment = HookRuntime.findClass(
+                    "com.tencent.aio.main.fragment.ChatFragment");
+            if (chatFragment != null) {
+                Method fr = HookRuntime.findMethod(chatFragment, "onResume");
+                if (fr != null) {
+                    XHooker.hookAfter(fr, param -> {
+                        Activity a = ActivityTracker.current();
+                        if (a != null) TriggerRegistry.scanActivity(a);
+                    });
+                    LogX.i("Bootstrap 已安装 ChatFragment.onResume 扫描");
+                }
+            }
+        } catch (Throwable t) {
+            LogX.w("ChatFragment.onResume 扫描安装失败: " + t);
+        }
+
         LogX.i("Bootstrap 已安装 Instrumentation Hook");
     }
 
@@ -156,6 +197,11 @@ public final class Bootstrap {
                 QqMenuHook.install();
             } catch (Throwable ignored) {
             }
+        }
+        try {
+            QqSessionStore.install();
+        } catch (Throwable t) {
+            LogX.e("QqSessionStore.install 失败", t);
         }
         try {
             LongPressHook.install();

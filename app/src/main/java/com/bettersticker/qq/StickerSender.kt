@@ -147,6 +147,7 @@ object StickerSender {
 
     /** 从当前 Activity 的对象图里找 com.tencent.mobileqq.activity.aio.n（AIO session）。 */
     private fun findAioSession(activity: Activity): Any? {
+        QqSessionStore.current()?.let { return it }
         val target = "com.tencent.mobileqq.activity.aio.n"
         val visited = java.util.Collections.newSetFromMap(
             java.util.IdentityHashMap<Any, Boolean>()
