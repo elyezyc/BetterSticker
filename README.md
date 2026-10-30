@@ -8,7 +8,8 @@
 
 当前版本：**1.0.0**（versionCode 100）  
 目标 QQ：**9.3.75.42350**  
-安装包名：**com.elyezyc.bettersticker**
+安装包名：**com.elyezyc.bettersticker**  
+仓库：**https://github.com/elyezyc/BetterSticker**
 
 ---
 
