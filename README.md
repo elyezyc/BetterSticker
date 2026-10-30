@@ -24,7 +24,7 @@
 
 ### 发送 / 预览 / 收藏
 
-- **单击表情**：直接发送到当前 QQ 聊天；
+- **单击表情**：把图片放进 QQ 输入框并点击 QQ 自己的发送按钮（走 QQ 原生发送链路，不单独捕获 AIOContext）；
 - **长按表情**：
   - 预览；
   - 收藏到“收藏”分组；
@@ -175,8 +175,8 @@ adb install app/build/outputs/apk/release/app-release.apk
 1. **只针对 QQ 9.3.75.42350 做过反编译适配**  
    菜单、输入框、AIO 上下文都依赖混淆类名和方法名。QQ 一升级，可能需要重新核对。
 
-2. **单击发送依赖 QQ 内部 AIO 接口**  
-   `AIOEmoApiImpl.sendRandomPicEmotionMsgFromAIO` 和 AIOContext 捕获都是反射/注入实现。某些聊天类型或 QQ 小版本上可能失败；失败时请用长按预览。
+2. **单击发送依赖“图片粘贴 + 发送按钮”自动化**  
+   实现会把图片写入 MediaStore、放进剪贴板，再触发 QQ 输入框粘贴和 QQ 发送按钮。某些输入法/QQ 小版本可能不接受图片粘贴；失败时请用长按预览，手动发送。
 
 3. **FunBox 分组规则是“按目录猜”**  
    现在按 `.fun/Sticker/Storage/<分组>` 取分组，不解析 FunBox 的内部数据库/索引。如果实际导出把分组信息放在 JSON 里，分组可能不准。

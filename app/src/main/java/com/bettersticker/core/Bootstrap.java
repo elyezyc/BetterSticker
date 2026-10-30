@@ -13,7 +13,6 @@ import com.bettersticker.hook.ActivityTracker;
 import com.bettersticker.hook.LongPressHook;
 import com.bettersticker.hook.TriggerRegistry;
 import com.bettersticker.qq.QqMenuHook;
-import com.bettersticker.qq.AioContextStore;
 import com.bettersticker.imports.ActivityResultHook;
 import com.bettersticker.qq.QqMenuItemHook;
 import com.bettersticker.store.FavoriteStore;
@@ -157,11 +156,6 @@ public final class Bootstrap {
                 QqMenuHook.install();
             } catch (Throwable ignored) {
             }
-        }
-        try {
-            AioContextStore.install();
-        } catch (Throwable t) {
-            LogX.e("AioContextStore.install 失败", t);
         }
         try {
             LongPressHook.install();
