@@ -174,11 +174,15 @@ object StickerSender {
                 for (f in c.declaredFields) {
                     if (java.lang.reflect.Modifier.isStatic(f.modifiers)) continue
                     val tn = f.type.name
-                    if (tn.startsWith("java.") && !tn.startsWith("java.util.")) continue
+                    if (tn.startsWith("java.") && !tn.startsWith("java.util.")
+                        && !tn.startsWith("java.lang.ref")) continue
                     if (tn.startsWith("android.") || tn.startsWith("kotlin.")) continue
                     try {
                         f.isAccessible = true
-                        val v = f.get(obj) ?: continue
+                        var v = f.get(obj) ?: continue
+                        if (v is java.lang.ref.Reference<*>) {
+                            v = v.get() ?: continue
+                        }
                         if (v.javaClass.name == target) return v
                         val n = v.javaClass.name
                         if (n.startsWith("com.tencent.") || v is List<*> || v is Array<*>) {
