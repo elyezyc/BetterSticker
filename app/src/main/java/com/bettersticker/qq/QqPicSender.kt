@@ -90,7 +90,8 @@ object QqPicSender {
         }
     }
 
-    private fun findSession(activity: Activity): Any? {
+    @JvmStatic
+    fun findSession(activity: Activity): Any? {
         val target = "com.tencent.mobileqq.activity.aio.SessionInfo"
         val visited = java.util.Collections.newSetFromMap(
             java.util.IdentityHashMap<Any, Boolean>())
@@ -133,6 +134,18 @@ object QqPicSender {
             }
         }
         return null
+    }
+
+    @JvmStatic
+    fun findApp(): Any? {
+        return try {
+            val base = HookRuntime.findClass(
+                "com.tencent.common.app.BaseApplicationImpl")
+            val appObj = base?.getMethod("getApplication")?.invoke(null)
+            appObj?.javaClass?.getMethod("getRuntime")?.invoke(appObj)
+        } catch (_: Throwable) {
+            null
+        }
     }
 
     private fun setField(obj: Any, name: String, value: Any?) {
